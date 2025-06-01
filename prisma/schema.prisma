@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  username  String    @unique
+  email     String    @unique
+  name      String?
+  avatar    String?
+  bio       String?
+  gender    String?
+  birthdate DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  auths             Auth[]
+  followers         Follow[]        @relation("followers")
+  following         Follow[]        @relation("following")
+  posts             Post[]
+  comments          Comment[]
+  postLikes         PostLike[]
+  commentLikes      CommentLike[]
+  sentMessages      DirectMessage[] @relation("DM_Sender")
+  receivedMessages  DirectMessage[] @relation("DM_Receiver")
+  groupMemberships  GroupMember[]
+  groupMessages     GroupMessage[]
+  SavedPost         SavedPost[]
+  notifications     Notification[]
+  notificationsFrom Notification[]  @relation("FromNotification")
+  notificationsTo   Notification[]  @relation("ToNotification")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("following", fields: [followerId], references: [id])
+  following User @relation("followers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+model Auth {
+  id         String   @id @default(uuid())
+  provider   String
+  providerId String
+  email      String?
+  password   String?
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime @default(now())
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  content   String
+  imageUrl  String?
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User        @relation(fields: [authorId], references: [id])
+  likes     PostLike[]
+  comments  Comment[]
+  SavedPost SavedPost[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  authorId  String
+  postId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author  User      @relation(fields: [authorId], references: [id])
+  post    Post      @relation(fields: [postId], references: [id])
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentReplies")
+
+  likes CommentLike[]
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId String
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([userId, commentId])
+}
+
+model DirectMessage {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  content    String
+  seen       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("DM_Sender", fields: [senderId], references: [id])
+  receiver User @relation("DM_Receiver", fields: [receiverId], references: [id])
+}
+
+model GroupChat {
+  id        String   @id @default(uuid())
+  name      String
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  GroupMember[]
+  messages GroupMessage[]
+}
+
+model GroupMember {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  group   GroupChat @relation(fields: [groupId], references: [id])
+  groupId String
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, groupId])
+}
+
+model GroupMessage {
+  id        String   @id @default(uuid())
+  content   String
+  senderId  String
+  groupId   String
+  createdAt DateTime @default(now())
+
+  sender User      @relation(fields: [senderId], references: [id])
+  group  GroupChat @relation(fields: [groupId], references: [id])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  fromId    String
+  toId      String
+  postId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  from   User    @relation("FromNotification", fields: [fromId], references: [id])
+  to     User    @relation("ToNotification", fields: [toId], references: [id])
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String?
+}
