@@ -1,3 +1,6 @@
+// Twilsta - Complete Database Schema
+// Generated for PostgreSQL with Prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,183 +10,405 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String    @id @default(uuid())
-  username  String    @unique
-  email     String    @unique
-  name      String?
-  avatar    String?
-  bio       String?
-  gender    String?
-  birthdate DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// ==================== USER MANAGEMENT ====================
 
-  auths             Auth[]
-  followers         Follow[]        @relation("followers")
-  following         Follow[]        @relation("following")
-  posts             Post[]
-  comments          Comment[]
-  postLikes         PostLike[]
-  commentLikes      CommentLike[]
-  sentMessages      DirectMessage[] @relation("DM_Sender")
-  receivedMessages  DirectMessage[] @relation("DM_Receiver")
-  groupMemberships  GroupMember[]
-  groupMessages     GroupMessage[]
-  SavedPost         SavedPost[]
-  notifications     Notification[]
-  notificationsFrom Notification[]  @relation("FromNotification")
-  notificationsTo   Notification[]  @relation("ToNotification")
+model User {
+  id         String   @id @default(cuid())
+  username   String   @unique
+  email      String   @unique
+  password   String
+  fullName   String?
+  bio        String?
+  avatar     String? // URL to avatar image
+  website    String?
+  phone      String?
+  isVerified Boolean  @default(false)
+  isPrivate  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // User Statistics
+  postsCount     Int @default(0)
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+
+  // Relations
+  posts        Post[]
+  likes        Like[]
+  comments     Comment[]
+  commentLikes CommentLike[]
+  stories      Story[]
+
+  // Following relationships
+  following Follow[] @relation("UserFollowing")
+  followers Follow[] @relation("UserFollowers")
+
+  // Conversation relationships
+  conversationMembers ConversationMember[]
+  sentMessages        Message[]            @relation("MessageSender")
+  messageReactions    MessageReaction[]
+
+  // Notifications
+  sentNotifications     Notification[] @relation("NotificationSender")
+  receivedNotifications Notification[] @relation("NotificationReceiver")
+
+  // Verification tokens
+  verificationTokens VerificationToken[]
+  StoryReaction      StoryReaction[]
+
+  @@map("users")
 }
 
 model Follow {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
 
-  follower  User @relation("following", fields: [followerId], references: [id])
-  following User @relation("followers", fields: [followingId], references: [id])
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@map("follows")
 }
 
-model Auth {
-  id         String   @id @default(uuid())
-  provider   String
-  providerId String
-  email      String?
-  password   String?
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  createdAt  DateTime @default(now())
-}
+// ==================== POSTS SYSTEM ====================
 
 model Post {
-  id        String   @id @default(uuid())
-  content   String
-  imageUrl  String?
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  caption         String?
+  location        String?
+  isArchived      Boolean  @default(false)
+  commentsEnabled Boolean  @default(true)
+  likesEnabled    Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  author    User        @relation(fields: [authorId], references: [id])
-  likes     PostLike[]
-  comments  Comment[]
-  SavedPost SavedPost[]
+  // Statistics
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+
+  // Relations
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media    PostMedia[]
+  likes    Like[]
+  comments Comment[]
+  hashtags PostHashtag[]
+
+  @@map("posts")
+}
+
+model PostMedia {
+  id        String    @id @default(cuid())
+  postId    String
+  url       String
+  type      MediaType
+  width     Int?
+  height    Int?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_media")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
 }
 
 model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  authorId  String
+  id        String   @id @default(cuid())
+  userId    String
   postId    String
-  parentId  String?
+  content   String
+  parentId  String? // For reply comments
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author  User      @relation(fields: [authorId], references: [id])
-  post    Post      @relation(fields: [postId], references: [id])
-  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies Comment[] @relation("CommentReplies")
+  // Statistics
+  likesCount Int @default(0)
 
-  likes CommentLike[]
-}
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  replies Comment[]     @relation("CommentReplies")
+  likes   CommentLike[]
 
-model PostLike {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-  post Post @relation(fields: [postId], references: [id])
-
-  @@unique([userId, postId])
+  @@map("comments")
 }
 
 model CommentLike {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
   createdAt DateTime @default(now())
 
-  comment   Comment @relation(fields: [commentId], references: [id])
-  commentId String
-  user      User    @relation(fields: [userId], references: [id])
-  userId    String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
+  @@map("comment_likes")
 }
 
-model DirectMessage {
-  id         String   @id @default(uuid())
-  senderId   String
-  receiverId String
-  content    String
-  seen       Boolean  @default(false)
+// ==================== HASHTAGS SYSTEM ====================
+
+model Hashtag {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  postsCount Int      @default(0)
   createdAt  DateTime @default(now())
 
-  sender   User @relation("DM_Sender", fields: [senderId], references: [id])
-  receiver User @relation("DM_Receiver", fields: [receiverId], references: [id])
+  posts PostHashtag[]
+
+  @@map("hashtags")
 }
 
-model GroupChat {
-  id        String   @id @default(uuid())
-  name      String
-  avatar    String?
+model PostHashtag {
+  postId    String
+  hashtagId String
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@map("post_hashtags")
+}
+
+// ==================== STORIES SYSTEM ====================
+
+model Story {
+  id        String    @id @default(cuid())
+  userId    String
+  mediaUrl  String
+  mediaType MediaType
+  text      String?
+  expiresAt DateTime // 24 hours from creation
+  createdAt DateTime  @default(now())
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views     StoryView[]
+  reactions StoryReaction[]
+
+  @@map("stories")
+}
+
+model StoryView {
+  id       String   @id @default(cuid())
+  storyId  String
+  userId   String
+  viewedAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@map("story_views")
+}
+
+// ==================== MESSAGING SYSTEM ====================
+
+model Conversation {
+  id        String           @id @default(cuid())
+  type      ConversationType @default(DIRECT)
+  name      String? // For group chats
+  avatar    String? // For group chats
+  adminId   String? // Group admin
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Last message info for optimization
+  lastMessageId   String?
+  lastMessageAt   DateTime?
+  lastMessageText String?
+
+  // Relations
+  members     ConversationMember[]
+  messages    Message[]
+  lastMessage Message?             @relation("LastMessage", fields: [lastMessageId], references: [id])
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String     @id @default(cuid())
+  conversationId String
+  userId         String
+  role           MemberRole @default(MEMBER)
+  joinedAt       DateTime   @default(now())
+  leftAt         DateTime?
+
+  // Message read tracking
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String?
+  messageType    MessageType @default(TEXT)
+  mediaUrl       String?
+
+  // Reply functionality
+  replyToId String?
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   Message[] @relation("MessageReplies")
+
+  // Message status
+  isEdited  Boolean @default(false)
+  isDeleted Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members  GroupMember[]
-  messages GroupMessage[]
+  conversation  Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender        User              @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  reactions     MessageReaction[]
+  lastMessageIn Conversation[]    @relation("LastMessage")
+
+  @@map("messages")
 }
 
-model GroupMember {
-  id     String @id @default(uuid())
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
-
-  group   GroupChat @relation(fields: [groupId], references: [id])
-  groupId String
-
-  joinedAt DateTime @default(now())
-
-  @@unique([userId, groupId])
-}
-
-model GroupMessage {
-  id        String   @id @default(uuid())
-  content   String
-  senderId  String
-  groupId   String
-  createdAt DateTime @default(now())
-
-  sender User      @relation(fields: [senderId], references: [id])
-  group  GroupChat @relation(fields: [groupId], references: [id])
-}
-
-model SavedPost {
-  id        String   @id @default(uuid())
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
   userId    String
-  postId    String
+  emoji     String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
-  post Post @relation(fields: [postId], references: [id])
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, postId])
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
 }
+
+// ==================== NOTIFICATIONS SYSTEM ====================
 
 model Notification {
-  id        String   @id @default(uuid())
-  type      String
-  fromId    String
-  toId      String
-  postId    String?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         String           @id @default(cuid())
+  senderId   String? // Null for system notifications
+  receiverId String
+  type       NotificationType
+  title      String
+  content    String
+  data       Json? // Additional data (post ID, user ID, etc.)
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
 
-  from   User    @relation("FromNotification", fields: [fromId], references: [id])
-  to     User    @relation("ToNotification", fields: [toId], references: [id])
-  User   User?   @relation(fields: [userId], references: [id])
-  userId String?
+  sender   User? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver User  @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ==================== ENUMS ====================
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  POST_SHARE
+  LOCATION
+  FILE
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MESSAGE
+  MENTION
+  POST_SHARE
+  STORY_VIEW
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  WOW
+  SAD
+  ANGRY
+}
+
+model StoryReaction {
+  id        String       @id @default(cuid())
+  storyId   String
+  userId    String
+  reaction  ReactionType
+  createdAt DateTime     @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@map("story_reactions")
+}
+
+// ==================== VERIFICATION TOKENS ====================
+
+model VerificationToken {
+  id        String           @id @default(cuid())
+  userId    String
+  token     String           @unique
+  type      VerificationType
+  expiresAt DateTime
+  isUsed    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_tokens")
+}
+
+enum VerificationType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// ==================== RATE LIMITING ====================
+
+model RateLimitLog {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  attempts  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rate_limit_logs")
 }
