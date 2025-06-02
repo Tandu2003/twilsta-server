@@ -60,15 +60,18 @@ model User {
 }
 
 model Follow {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   followerId  String
   followingId String
-  createdAt   DateTime @default(now())
+  status      FollowStatus @default(ACCEPTED)
+  createdAt   DateTime    @default(now())
 
   follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@index([followerId, status])
+  @@index([followingId, status])
   @@map("follows")
 }
 
@@ -411,4 +414,9 @@ model RateLimitLog {
   updatedAt DateTime @updatedAt
 
   @@map("rate_limit_logs")
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
 }
