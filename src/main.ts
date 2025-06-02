@@ -7,6 +7,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { EmailUtil } from './common/utils/email.util';
 import * as cookieParser from 'cookie-parser';
+import * as morgan from 'morgan';
 
 async function Start() {
   const app = await NestFactory.create(AppModule);
@@ -45,6 +46,8 @@ async function Start() {
   });
 
   app.use(cookieParser());
+
+  app.use(morgan('dev'));
 
   await app.listen(process.env.PORT ?? 4000);
 }
