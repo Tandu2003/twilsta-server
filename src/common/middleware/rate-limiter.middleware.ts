@@ -14,7 +14,7 @@ export class RateLimiterMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const clientIp = this.getClientIp(req);
     const key = `rate_limit:${clientIp}`;
-    const windowMs = 15 * 60 * 1000; // 15 minutes
+    const windowMs = 1 * 60 * 1000; // 1 minute
     const maxRequests = 100; // Max requests per window
 
     try {
