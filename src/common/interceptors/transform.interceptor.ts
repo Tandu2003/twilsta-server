@@ -20,14 +20,39 @@ export class TransformInterceptor<T>
     const path = request.url;
 
     return next.handle().pipe(
-      map((data) => ({
-        statusCode: context.switchToHttp().getResponse().statusCode,
-        success: true,
-        message: 'Success',
-        data,
-        timestamp: new Date().toISOString(),
-        path,
-      })),
+      map((data) => {
+        if (
+          data &&
+          typeof data === 'object' &&
+          'statusCode' in data &&
+          'success' in data &&
+          'message' in data &&
+          'timestamp' in data &&
+          'path' in data
+        ) {
+          return data;
+        }
+
+        let message = 'Success';
+        let responseData = data;
+
+        if (data && typeof data === 'object') {
+          if ('message' in data) {
+            message = data.message;
+            const { message: _, ...rest } = data;
+            responseData = rest;
+          }
+        }
+
+        return {
+          statusCode: context.switchToHttp().getResponse().statusCode,
+          success: true,
+          message,
+          data: responseData,
+          timestamp: new Date().toISOString(),
+          path,
+        };
+      }),
     );
   }
 }

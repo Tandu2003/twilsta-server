@@ -14,12 +14,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
+    const exceptionResponse = exception.getResponse();
+
+    // Extract error message from exception response
+    let errorMessage = exception.message;
+    if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      if ('message' in exceptionResponse) {
+        errorMessage = Array.isArray(exceptionResponse.message)
+          ? exceptionResponse.message[0]
+          : exceptionResponse.message;
+      }
+    }
 
     const errorResponse: ApiResponse = {
       statusCode: status,
       success: false,
-      message: exception.message || 'Internal server error',
-      error: exception.getResponse(),
+      message: errorMessage,
       timestamp: new Date().toISOString(),
       path: request.url,
     };
