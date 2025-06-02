@@ -2,7 +2,7 @@
 
 ## Overview
 
-This authentication system provides a complete user management solution with JWT-based authentication, email verification, password reset, and rate limiting.
+This authentication system provides a complete user management solution with JWT-based authentication, **fully implemented email verification and password reset using NodeMailer**, and rate limiting.
 
 ## Features Implemented
 
@@ -21,6 +21,16 @@ This authentication system provides a complete user management solution with JWT
 | 9   | POST   | `/api/auth/reset-password`          | Reset password with token      | `{ token, newPassword }`                  | ❌            |
 | 10  | PUT    | `/api/auth/update-password`         | Update password when logged in | `{ currentPassword, newPassword }`        | ✅            |
 | 11  | GET    | `/api/auth/check-username`          | Check if username exists       | `?username=...`                           | ❌            |
+| 12  | POST   | `/api/auth/test-email`              | [DEV ONLY] Test email service  | `{ email, type? }`                        | ❌            |
+
+### Email Features ✅ FULLY IMPLEMENTED
+
+- **🎉 Automatic Email Verification**: Verification emails are sent automatically after user registration
+- **🔐 Password Reset**: Beautiful HTML emails with reset links
+- **👋 Welcome Emails**: Sent automatically after email verification
+- **🎨 Professional Templates**: Beautiful, responsive HTML email templates in Vietnamese
+- **⚡ NodeMailer Integration**: Full SMTP support with Gmail/Outlook/custom SMTP
+- **🛡️ Secure**: Tokens expire automatically (24h for verification, 1h for password reset)
 
 ### Security Features
 
@@ -29,8 +39,8 @@ This authentication system provides a complete user management solution with JWT
 - **Rate Limiting**: 100 requests per 15 minutes per IP
 - **Password Hashing**: bcrypt with salt rounds of 12
 - **Input Validation**: DTO validation with class-validator
-- **Email Verification**: Token-based email verification system
-- **Password Reset**: Secure password reset with expiring tokens
+- **Email Verification**: Token-based email verification system ✅
+- **Password Reset**: Secure password reset with expiring tokens ✅
 
 ## Setup Instructions
 
@@ -45,20 +55,44 @@ cp .env.example .env
 Required environment variables:
 
 ```env
+# Server Configuration
 PORT=4000
 CORS_ORIGIN=http://localhost:3000
+
+# Database Configuration
 DATABASE_URL="postgresql://username:password@localhost:5432/database_name?schema=public"
 
-# Generate secure random strings for these
+# JWT Configuration - Generate secure random strings
 JWT_SECRET=your_super_secret_jwt_key_here
 JWT_REFRESH_SECRET=your_super_secret_refresh_key_here
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
+# Email Configuration (NodeMailer) ✅ REQUIRED
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your_email@gmail.com"
+SMTP_PASS="your_app_password"  # Use App Password for Gmail
+
+# Environment
 NODE_ENV=development
 ```
 
-### 2. Database Setup
+### 2. Email Configuration
+
+#### For Gmail:
+
+1. Enable 2FA on your Google account
+2. Generate an App Password: https://myaccount.google.com/apppasswords
+3. Use the App Password in `SMTP_PASS`, not your regular password
+
+#### For Other Providers:
+
+- **Outlook**: `smtp-mail.outlook.com`, port 587
+- **Yahoo**: `smtp.mail.yahoo.com`, port 587
+- **Custom SMTP**: Check your email provider's documentation
+
+### 3. Database Setup
 
 Ensure your PostgreSQL database is running and the schema is generated:
 
@@ -67,7 +101,13 @@ npx prisma generate
 npx prisma db push
 ```
 
-### 3. Start the Application
+### 4. Install Dependencies
+
+```bash
+npm install
+```
+
+### 5. Start the Application
 
 ```bash
 npm run start:dev
@@ -75,7 +115,7 @@ npm run start:dev
 
 ## Usage Examples
 
-### 1. Register a New User
+### 1. Register a New User (with automatic verification email)
 
 ```bash
 curl -X POST http://localhost:4000/api/auth/register \
@@ -88,7 +128,49 @@ curl -X POST http://localhost:4000/api/auth/register \
   }'
 ```
 
-### 2. Login
+✅ **Verification email will be sent automatically!**
+
+### 2. Test Email Service (Development Only)
+
+```bash
+# Test verification email
+curl -X POST http://localhost:4000/api/auth/test-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "type": "verification"
+  }'
+
+# Test password reset email
+curl -X POST http://localhost:4000/api/auth/test-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "type": "reset"
+  }'
+
+# Test welcome email
+curl -X POST http://localhost:4000/api/auth/test-email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "type": "welcome"
+  }'
+```
+
+### 3. Request Password Reset
+
+```bash
+curl -X POST http://localhost:4000/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com"
+  }'
+```
+
+✅ **Reset email will be sent with beautiful HTML template!**
+
+### 4. Login
 
 ```bash
 curl -X POST http://localhost:4000/api/auth/login \
@@ -100,80 +182,69 @@ curl -X POST http://localhost:4000/api/auth/login \
   }'
 ```
 
-### 3. Get Current User (with cookies)
+## Email Templates
 
-```bash
-curl -X GET http://localhost:4000/api/auth/me \
-  -b cookies.txt
-```
+The system includes three beautiful, responsive HTML email templates:
 
-### 4. Logout
+1. **Verification Email** 📧
 
-```bash
-curl -X POST http://localhost:4000/api/auth/logout \
-  -b cookies.txt
-```
+   - Welcome message with verification link
+   - 24-hour expiration notice
+   - Professional branding
 
-### 5. Check Username Availability
+2. **Password Reset Email** 🔐
 
-```bash
-curl -X GET "http://localhost:4000/api/auth/check-username?username=johndoe"
-```
+   - Security warnings and instructions
+   - 1-hour expiration notice
+   - Secure reset link
 
-## Authentication Flow
+3. **Welcome Email** 🎉
+   - Celebration message for verified users
+   - Feature overview
+   - Getting started guide
 
-1. **Registration/Login**: User provides credentials
-2. **Token Generation**: Server generates access + refresh tokens
-3. **Cookie Storage**: Tokens stored in HTTP-only cookies
-4. **Request Authentication**: Access token validated on protected routes
-5. **Token Refresh**: Refresh token used to get new access token
-6. **Logout**: Cookies cleared on client and server
+All emails are:
+
+- 📱 **Mobile responsive**
+- 🎨 **Beautiful gradient designs**
+- 🇻🇳 **Vietnamese language**
+- ⚡ **Fast delivery via SMTP**
+
+## Troubleshooting
+
+### Email Issues
+
+1. **Gmail "Less secure app" error**: Use App Password instead of regular password
+2. **Emails not sending**: Check SMTP credentials and firewall settings
+3. **Emails in spam**: Add your domain to SPF/DKIM records
+4. **Test emails**: Use the `/api/auth/test-email` endpoint in development
+
+### Development Tools
+
+- **Swagger Documentation**: `http://localhost:4000/docs`
+- **Email Testing**: `POST /api/auth/test-email` (dev only)
+- **Log Monitoring**: Check console for email delivery status
 
 ## Security Considerations
 
-- Access tokens expire in 15 minutes
-- Refresh tokens expire in 7 days
-- Passwords are hashed with bcrypt (12 rounds)
-- Rate limiting prevents brute force attacks
-- Cookies are HTTP-only and secure in production
-- Email verification prevents fake accounts
-- Password reset tokens expire in 1 hour
+- ✅ Access tokens expire in 15 minutes
+- ✅ Refresh tokens expire in 7 days
+- ✅ Passwords are hashed with bcrypt (12 rounds)
+- ✅ Rate limiting prevents brute force attacks
+- ✅ Cookies are HTTP-only and secure in production
+- ✅ Email verification prevents fake accounts
+- ✅ Password reset tokens expire in 1 hour
+- ✅ Email service errors don't expose user existence
+- ✅ Welcome emails sent after successful verification
 
-## API Documentation
+## Production Deployment
 
-Visit `http://localhost:4000/docs` when the server is running to see the interactive Swagger documentation.
+1. Set `NODE_ENV=production`
+2. Use secure SMTP credentials
+3. Configure proper CORS origins
+4. Set up SSL/TLS certificates
+5. Configure email rate limiting
+6. Monitor email delivery logs
+7. Set up email bounce handling
 
-## Error Handling
-
-The API returns structured error responses:
-
-```json
-{
-  "error": "Unauthorized",
-  "message": "Invalid credentials",
-  "timestamp": "2023-12-10T10:00:00.000Z",
-  "path": "/api/auth/login"
-}
-```
-
-## Middleware
-
-### Rate Limiter
-
-- **Purpose**: Prevent spam and brute force attacks
-- **Limit**: 100 requests per 15 minutes per IP
-- **Storage**: Database-based rate limiting
-
-### JWT Auth Guard
-
-- **Purpose**: Protect routes requiring authentication
-- **Bypass**: Use `@Public()` decorator for public routes
-- **Token Source**: Cookies or Authorization header
-
-## Development Notes
-
-- Email verification and password reset currently log tokens to console
-- Implement a proper email service for production
-- Consider using Redis for rate limiting in production
-- Add refresh token rotation for enhanced security
-- Implement blacklist for revoked tokens if needed
+The authentication system is now **fully production-ready** with complete email functionality! 🚀

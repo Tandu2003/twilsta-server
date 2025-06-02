@@ -4,6 +4,7 @@ import {
   IsString,
   MinLength,
   IsOptional,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -79,4 +80,24 @@ export class UpdatePasswordDto {
   @IsNotEmpty()
   @MinLength(6)
   newPassword: string;
+}
+
+export class TestEmailDto {
+  @ApiProperty({
+    example: 'test@example.com',
+    description: 'Email address to send test email to',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    example: 'verification',
+    enum: ['verification', 'reset', 'welcome'],
+    required: false,
+    description: 'Type of email to send (default: verification)',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['verification', 'reset', 'welcome'])
+  type?: 'verification' | 'reset' | 'welcome';
 }

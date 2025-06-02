@@ -9,6 +9,11 @@ export class JwtUtil {
 
   constructor(private readonly jwtService: JwtService) {}
 
+  private cleanPayload(payload: any): any {
+    const { exp, iat, nbf, ...cleanedPayload } = payload;
+    return cleanedPayload;
+  }
+
   async generateTokens(payload: any) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
@@ -60,7 +65,9 @@ export class JwtUtil {
       return null;
     }
 
-    return this.jwtService.signAsync(payload, {
+    const cleanedPayload = this.cleanPayload(payload);
+
+    return this.jwtService.signAsync(cleanedPayload, {
       expiresIn: JwtUtil.ACCESS_TOKEN_EXPIRES_IN,
     });
   }
@@ -71,6 +78,8 @@ export class JwtUtil {
       return null;
     }
 
-    return this.generateTokens(payload);
+    const cleanedPayload = this.cleanPayload(payload);
+
+    return this.generateTokens(cleanedPayload);
   }
 }

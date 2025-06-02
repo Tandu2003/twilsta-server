@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BcryptUtil } from '../common/utils/bcrypt.util';
 import { JwtUtil } from '../common/utils/jwt.util';
 import { LoggerUtil } from '../common/utils/logger.util';
+import { EmailUtil } from '../common/utils/email.util';
 import { randomBytes } from 'crypto';
 import {
   RegisterDto,
@@ -78,6 +79,33 @@ export class AuthService {
         createdAt: true,
       },
     });
+
+    // Send verification email automatically after registration
+    try {
+      const token = randomBytes(32).toString('hex');
+      await this.prisma.verificationToken.create({
+        data: {
+          userId: user.id,
+          token,
+          type: 'EMAIL_VERIFICATION',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        },
+      });
+
+      const frontendUrl = this.configService.get<string>('CORS_ORIGIN');
+      await EmailUtil.sendVerificationEmail(
+        user.email,
+        user.username,
+        token,
+        frontendUrl,
+      );
+    } catch (error) {
+      LoggerUtil.error(
+        'Failed to send verification email after registration',
+        error,
+      );
+      // Don't fail registration if email fails
+    }
 
     // Generate tokens using JwtUtil
     const payload = {
@@ -183,10 +211,30 @@ export class AuthService {
       },
     });
 
-    // TODO: Send email (implement email service)
-    LoggerUtil.logAuthEvent('Verification email requested', user.id, { email });
+    // Send verification email
+    try {
+      const frontendUrl = this.configService.get<string>('CORS_ORIGIN');
+      const emailSent = await EmailUtil.sendVerificationEmail(
+        user.email,
+        user.username,
+        token,
+        frontendUrl,
+      );
 
-    return { message: 'Verification email sent successfully' };
+      if (!emailSent) {
+        throw new Error('Email service failed');
+      }
+
+      LoggerUtil.logAuthEvent('Verification email requested', user.id, {
+        email,
+      });
+      return { message: 'Verification email sent successfully' };
+    } catch (error) {
+      LoggerUtil.error('Failed to send verification email', error);
+      throw new BadRequestException(
+        'Failed to send verification email. Please try again later.',
+      );
+    }
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<{ message: string }> {
@@ -222,6 +270,19 @@ export class AuthService {
       data: { isUsed: true },
     });
 
+    // Send welcome email
+    try {
+      const frontendUrl = this.configService.get<string>('CORS_ORIGIN');
+      await EmailUtil.sendWelcomeEmail(
+        verificationToken.user.email,
+        verificationToken.user.username,
+        frontendUrl,
+      );
+    } catch (error) {
+      LoggerUtil.error('Failed to send welcome email', error);
+      // Don't fail verification if welcome email fails
+    }
+
     return { message: 'Email verified successfully' };
   }
 
@@ -250,8 +311,25 @@ export class AuthService {
       },
     });
 
-    // TODO: Send email (implement email service)
-    LoggerUtil.logAuthEvent('Password reset requested', user.id, { email });
+    // Send password reset email
+    try {
+      const frontendUrl = this.configService.get<string>('CORS_ORIGIN');
+      const emailSent = await EmailUtil.sendPasswordResetEmail(
+        user.email,
+        user.username,
+        token,
+        frontendUrl,
+      );
+
+      if (!emailSent) {
+        throw new Error('Email service failed');
+      }
+
+      LoggerUtil.logAuthEvent('Password reset requested', user.id, { email });
+    } catch (error) {
+      LoggerUtil.error('Failed to send password reset email', error);
+      // Don't reveal if email exists or not, even if email fails
+    }
 
     return { message: 'If the email exists, a reset link has been sent' };
   }

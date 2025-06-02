@@ -1,13 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { EmailUtil } from './common/utils/email.util';
 import * as cookieParser from 'cookie-parser';
 
 async function Start() {
   const app = await NestFactory.create(AppModule);
+
+  // Initialize EmailUtil
+  const configService = app.get(ConfigService);
+  await EmailUtil.initialize(configService);
 
   const config = new DocumentBuilder()
     .setTitle('Twilsta API')

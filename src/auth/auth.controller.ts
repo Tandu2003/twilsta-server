@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   ValidationPipe,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import {
@@ -35,8 +36,11 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   UpdatePasswordDto,
+  TestEmailDto,
 } from './dto/auth.dto';
 import { UserResponse } from './interfaces/auth.interface';
+import { ConfigService } from '@nestjs/config';
+import { EmailUtil } from '../common/utils/email.util';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -44,7 +48,10 @@ import { UserResponse } from './interfaces/auth.interface';
 @UseFilters(HttpExceptionFilter)
 @UseInterceptors(TransformInterceptor)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('register')
@@ -205,5 +212,85 @@ export class AuthController {
       return { exists: false, message: 'Username parameter is required' };
     }
     return this.authService.checkUsername(username);
+  }
+
+  @Public()
+  @Post('test-email')
+  @ApiOperation({
+    summary: '[DEV ONLY] Test email service',
+    description:
+      'Send test emails for development and testing purposes. Only available in development mode.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Test email sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Test verification email sent successfully',
+        },
+        success: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Only available in development or validation error',
+  })
+  async testEmail(@Body(ValidationPipe) dto: TestEmailDto) {
+    // Only allow in development
+    if (this.configService.get('NODE_ENV') !== 'development') {
+      return {
+        message: 'This endpoint is only available in development mode',
+        success: false,
+      };
+    }
+
+    const { email, type = 'verification' } = dto;
+    const testToken = 'test-token-123';
+    const testUsername = 'testuser';
+    const frontendUrl = this.configService.get<string>('CORS_ORIGIN');
+
+    try {
+      let result = false;
+      switch (type) {
+        case 'verification':
+          result = await EmailUtil.sendVerificationEmail(
+            email,
+            testUsername,
+            testToken,
+            frontendUrl,
+          );
+          break;
+        case 'reset':
+          result = await EmailUtil.sendPasswordResetEmail(
+            email,
+            testUsername,
+            testToken,
+            frontendUrl,
+          );
+          break;
+        case 'welcome':
+          result = await EmailUtil.sendWelcomeEmail(
+            email,
+            testUsername,
+            frontendUrl,
+          );
+          break;
+      }
+
+      return {
+        message: `Test ${type} email ${result ? 'sent successfully' : 'failed to send'}`,
+        success: result,
+      };
+    } catch (error) {
+      return {
+        message: 'Failed to send test email',
+        error: error.message,
+        success: false,
+      };
+    }
   }
 }
