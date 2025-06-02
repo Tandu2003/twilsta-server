@@ -293,4 +293,23 @@ export class AuthController {
       };
     }
   }
+
+  @Public()
+  @Post('check-auth')
+  @ApiOperation({
+    summary: 'Kiểm tra tính hợp lệ của accessToken hoặc refreshToken',
+  })
+  @ApiResponse({ status: 200, description: 'Token is valid' })
+  @ApiResponse({ status: 401, description: 'Token is invalid or expired' })
+  async checkAuth(@Req() request: Request) {
+    const accessToken = CookieUtil.get(request, 'accessToken');
+    const refreshToken = CookieUtil.get(request, 'refreshToken');
+
+    if (!accessToken && !refreshToken) {
+      return { isValid: false, message: 'No tokens found' };
+    }
+
+    const result = await this.authService.checkAuth(accessToken, refreshToken);
+    return result;
+  }
 }

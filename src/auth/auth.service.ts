@@ -441,4 +441,29 @@ export class AuthService {
       createdAt: user.createdAt,
     };
   }
+
+  async checkAuth(
+    accessToken?: string,
+    refreshToken?: string,
+  ): Promise<{ isValid: boolean; message: string }> {
+    // First try to verify access token
+    if (accessToken) {
+      const accessTokenPayload =
+        await this.jwtUtil.verifyAccessToken(accessToken);
+      if (accessTokenPayload) {
+        return { isValid: true, message: 'Access token is valid' };
+      }
+    }
+
+    // If access token is invalid or not present, try refresh token
+    if (refreshToken) {
+      const refreshTokenPayload =
+        await this.jwtUtil.verifyRefreshToken(refreshToken);
+      if (refreshTokenPayload) {
+        return { isValid: true, message: 'Refresh token is valid' };
+      }
+    }
+
+    return { isValid: false, message: 'Both tokens are invalid or expired' };
+  }
 }
