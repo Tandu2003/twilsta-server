@@ -8,7 +8,9 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
+import { BcryptUtil } from '../common/utils/bcrypt.util';
+import { JwtUtil } from '../common/utils/jwt.util';
+import { LoggerUtil } from '../common/utils/logger.util';
 import { randomBytes } from 'crypto';
 import {
   RegisterDto,
@@ -25,11 +27,15 @@ import {
 
 @Injectable()
 export class AuthService {
+  private jwtUtil: JwtUtil;
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.jwtUtil = new JwtUtil(this.jwtService);
+  }
 
   async register(registerDto: RegisterDto): Promise<AuthResponse> {
     const { username, email, password, fullName } = registerDto;
@@ -50,8 +56,8 @@ export class AuthService {
       }
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash password using BcryptUtil
+    const hashedPassword = await BcryptUtil.hash(password);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -73,19 +79,20 @@ export class AuthService {
       },
     });
 
-    // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      user.username,
-      user.email,
-    );
+    // Generate tokens using JwtUtil
+    const payload = {
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+    };
+    const tokens = await this.jwtUtil.generateTokens(payload);
 
     const userResponse: UserResponse = {
       id: user.id,
       username: user.username,
       email: user.email,
-      fullName: user.fullName || undefined,
-      avatar: user.avatar || undefined,
+      fullName: user.fullName ?? undefined,
+      avatar: user.avatar ?? undefined,
       isVerified: user.isVerified,
       isPrivate: user.isPrivate,
       createdAt: user.createdAt,
@@ -107,23 +114,24 @@ export class AuthService {
       },
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !(await BcryptUtil.compare(password, user.password))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      user.username,
-      user.email,
-    );
+    // Generate tokens using JwtUtil
+    const payload = {
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+    };
+    const tokens = await this.jwtUtil.generateTokens(payload);
 
     const userResponse: UserResponse = {
       id: user.id,
       username: user.username,
       email: user.email,
-      fullName: user.fullName || undefined,
-      avatar: user.avatar || undefined,
+      fullName: user.fullName ?? undefined,
+      avatar: user.avatar ?? undefined,
       isVerified: user.isVerified,
       isPrivate: user.isPrivate,
       createdAt: user.createdAt,
@@ -136,29 +144,13 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
-    try {
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      });
+    const accessToken = await this.jwtUtil.refreshAccessToken(refreshToken);
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.userId },
-      });
-
-      if (!user) {
-        throw new UnauthorizedException('User not found');
-      }
-
-      const accessToken = await this.generateAccessToken(
-        user.id,
-        user.username,
-        user.email,
-      );
-
-      return { accessToken };
-    } catch (error) {
+    if (!accessToken) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    return { accessToken };
   }
 
   async sendVerificationEmail(
@@ -192,7 +184,7 @@ export class AuthService {
     });
 
     // TODO: Send email (implement email service)
-    console.log(`Verification token for ${email}: ${token}`);
+    LoggerUtil.logAuthEvent('Verification email requested', user.id, { email });
 
     return { message: 'Verification email sent successfully' };
   }
@@ -259,7 +251,7 @@ export class AuthService {
     });
 
     // TODO: Send email (implement email service)
-    console.log(`Password reset token for ${email}: ${token}`);
+    LoggerUtil.logAuthEvent('Password reset requested', user.id, { email });
 
     return { message: 'If the email exists, a reset link has been sent' };
   }
@@ -282,8 +274,8 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    // Hash new password using BcryptUtil
+    const hashedPassword = await BcryptUtil.hash(newPassword);
 
     // Update user password
     await this.prisma.user.update({
@@ -310,12 +302,12 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+    if (!user || !(await BcryptUtil.compare(currentPassword, user.password))) {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    // Hash new password using BcryptUtil
+    const hashedPassword = await BcryptUtil.hash(newPassword);
 
     // Update password
     await this.prisma.user.update({
@@ -357,45 +349,11 @@ export class AuthService {
       id: user.id,
       username: user.username,
       email: user.email,
-      fullName: user.fullName || undefined,
-      avatar: user.avatar || undefined,
+      fullName: user.fullName ?? undefined,
+      avatar: user.avatar ?? undefined,
       isVerified: user.isVerified,
       isPrivate: user.isPrivate,
       createdAt: user.createdAt,
     };
-  }
-
-  private async generateTokens(
-    userId: string,
-    username: string,
-    email: string,
-  ) {
-    const payload: JwtPayload = { userId, username, email };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.generateAccessToken(userId, username, email),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get<string>(
-          'JWT_REFRESH_EXPIRES_IN',
-          '7d',
-        ),
-      }),
-    ]);
-
-    return { accessToken, refreshToken };
-  }
-
-  private async generateAccessToken(
-    userId: string,
-    username: string,
-    email: string,
-  ) {
-    const payload: JwtPayload = { userId, username, email };
-
-    return this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '15m'),
-    });
   }
 }

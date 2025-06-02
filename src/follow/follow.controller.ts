@@ -6,6 +6,8 @@ import {
   Param,
   Query,
   UseGuards,
+  UseFilters,
+  UseInterceptors,
   ValidationPipe,
 } from '@nestjs/common';
 import {
@@ -18,6 +20,8 @@ import {
 import { FollowService } from './follow.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
+import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
 import { UserResponse } from '../auth/interfaces/auth.interface';
 import {
   PaginationDto,
@@ -40,6 +44,8 @@ import {
 )
 @Controller('follow')
 @UseGuards(JwtAuthGuard)
+@UseFilters(HttpExceptionFilter)
+@UseInterceptors(TransformInterceptor)
 export class FollowController {
   constructor(private readonly followService: FollowService) {}
 

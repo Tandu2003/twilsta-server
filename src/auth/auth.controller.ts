@@ -8,6 +8,8 @@ import {
   Res,
   Req,
   UseGuards,
+  UseFilters,
+  UseInterceptors,
   ValidationPipe,
   HttpStatus,
 } from '@nestjs/common';
@@ -22,6 +24,9 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CookieUtil } from '../common/utils/cookie.util';
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
+import { TransformInterceptor } from '../common/interceptors/transform.interceptor';
 import {
   RegisterDto,
   LoginDto,
@@ -36,6 +41,8 @@ import { UserResponse } from './interfaces/auth.interface';
 @ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(JwtAuthGuard)
+@UseFilters(HttpExceptionFilter)
+@UseInterceptors(TransformInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -50,18 +57,12 @@ export class AuthController {
   ) {
     const result = await this.authService.register(registerDto);
 
-    // Set cookies
-    response.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+    // Set cookies using CookieUtil
+    CookieUtil.set(response, 'accessToken', result.accessToken, {
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    response.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+    CookieUtil.set(response, 'refreshToken', result.refreshToken, {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -82,18 +83,12 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto);
 
-    // Set cookies
-    response.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+    // Set cookies using CookieUtil
+    CookieUtil.set(response, 'accessToken', result.accessToken, {
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    response.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+    CookieUtil.set(response, 'refreshToken', result.refreshToken, {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -108,9 +103,9 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiBearerAuth()
   async logout(@Res({ passthrough: true }) response: Response) {
-    // Clear cookies
-    response.clearCookie('accessToken');
-    response.clearCookie('refreshToken');
+    // Clear cookies using CookieUtil
+    CookieUtil.clear(response, 'accessToken');
+    CookieUtil.clear(response, 'refreshToken');
 
     return { message: 'Logout successful' };
   }
@@ -124,7 +119,7 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = request.cookies?.refreshToken;
+    const refreshToken = CookieUtil.get(request, 'refreshToken');
 
     if (!refreshToken) {
       response.status(HttpStatus.UNAUTHORIZED);
@@ -133,11 +128,8 @@ export class AuthController {
 
     const result = await this.authService.refreshToken(refreshToken);
 
-    // Set new access token cookie
-    response.cookie('accessToken', result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+    // Set new access token cookie using CookieUtil
+    CookieUtil.set(response, 'accessToken', result.accessToken, {
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
