@@ -179,13 +179,53 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string }> {
-    const accessToken = await this.jwtUtil.refreshAccessToken(refreshToken);
+    try {
+      // Kiểm tra refresh token có tồn tại và hợp lệ không
+      if (!refreshToken) {
+        throw new UnauthorizedException('Refresh token is required');
+      }
 
-    if (!accessToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+      // Verify refresh token trước khi tạo access token mới
+      const refreshTokenPayload =
+        await this.jwtUtil.verifyRefreshToken(refreshToken);
+
+      if (!refreshTokenPayload) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Kiểm tra user còn tồn tại không
+      const user = await this.prisma.user.findUnique({
+        where: { id: refreshTokenPayload.userId },
+        select: { id: true, isVerified: true },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      // Tạo access token mới
+      const accessToken = await this.jwtUtil.refreshAccessToken(refreshToken);
+
+      if (!accessToken) {
+        throw new UnauthorizedException('Failed to generate new access token');
+      }
+
+      // Log successful refresh
+      console.log(
+        `Token refreshed successfully for user: ${refreshTokenPayload.userId}`,
+      );
+
+      return { accessToken };
+    } catch (error) {
+      // Log failed refresh attempts để detect potential attacks
+      console.error('Token refresh failed:', error.message);
+
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      throw new UnauthorizedException('Token refresh failed');
     }
-
-    return { accessToken };
   }
 
   async sendVerificationEmail(
