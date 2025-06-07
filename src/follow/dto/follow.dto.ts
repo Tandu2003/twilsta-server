@@ -1,29 +1,7 @@
-import { IsOptional, IsString, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class PaginationDto {
-  @ApiProperty({
-    description: 'Số lượng item mỗi trang',
-    example: 20,
-    required: false,
-    minimum: 1,
-    maximum: 50,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @Min(1)
-  limit?: number = 20;
-
-  @ApiProperty({
-    description: 'ID của item cuối cùng',
-    required: false,
-    example: 'clp123abc',
-  })
-  @IsOptional()
-  @IsString()
-  cursor?: string;
-}
+export { PaginationDto } from '../../common/dto/pagination.dto';
 
 export class FollowParamsDto {
   @ApiProperty({

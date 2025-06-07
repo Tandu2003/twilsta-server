@@ -49,7 +49,8 @@ async function Start() {
 
   app.use(morgan('dev'));
 
-  await app.listen(process.env.PORT ?? 4000);
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port);
 }
 
 Start();

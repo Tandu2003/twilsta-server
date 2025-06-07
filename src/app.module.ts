@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FollowModule } from './follow/follow.module';
 import { UsersModule } from './users/users.module';
+import { ChatModule } from './chat/chat.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RateLimiterMiddleware } from './common/middleware/rate-limiter.middleware';
 
@@ -17,6 +18,7 @@ import { RateLimiterMiddleware } from './common/middleware/rate-limiter.middlewa
     AuthModule,
     FollowModule,
     UsersModule,
+    ChatModule,
   ],
   controllers: [],
   providers: [

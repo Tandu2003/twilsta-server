@@ -293,13 +293,13 @@ model MessageReaction {
   id        String   @id @default(cuid())
   messageId String
   userId    String
-  emoji     String
+  type      ReactionType
   createdAt DateTime @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([messageId, userId, emoji])
+  @@unique([messageId, userId])
   @@map("message_reactions")
 }
 
@@ -310,7 +310,7 @@ model Notification {
   senderId   String? // Null for system notifications
   receiverId String
   type       NotificationType
-  title      String
+  reaction  ReactionType
   content    String
   data       Json? // Additional data (post ID, user ID, etc.)
   isRead     Boolean          @default(false)
