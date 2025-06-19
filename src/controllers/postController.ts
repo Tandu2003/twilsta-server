@@ -10,6 +10,7 @@ import {
 } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
+import { getRealtimeService } from '../services/realtimeInstance';
 
 const prisma = new PrismaClient();
 
@@ -345,9 +346,7 @@ export class PostController {
             },
           },
         },
-      });
-
-      // Update user's posts count
+      }); // Update user's posts count
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -355,7 +354,11 @@ export class PostController {
             increment: 1,
           },
         },
-      });
+      }); // Broadcast new post creation via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastNewPost(newPost);
+      }
 
       logger.info(`New post created: ${newPost.id} by user: ${userId}`);
       created(res, newPost, 'Post created successfully');
@@ -424,6 +427,12 @@ export class PostController {
           },
         },
       });
+
+      // Broadcast post update via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastPostUpdate(id, updatedPost);
+      }
 
       logger.info(`Post updated: ${id} by user: ${userId}`);
       success(res, updatedPost, 'Post updated successfully');
@@ -506,9 +515,7 @@ export class PostController {
       // Delete post (this will cascade delete likes, comments, etc.)
       await prisma.post.delete({
         where: { id },
-      });
-
-      // Update user's posts count
+      }); // Update user's posts count
       await prisma.user.update({
         where: { id: userId },
         data: {
@@ -517,6 +524,12 @@ export class PostController {
           },
         },
       });
+
+      // Broadcast post deletion via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastPostDelete(id, userId);
+      }
 
       logger.info(`Post deleted: ${id} by user: ${userId}`);
       success(res, null, 'Post deleted successfully');
@@ -559,9 +572,9 @@ export class PostController {
           },
         },
       });
-
       let liked = false;
       let message = '';
+      let likeData = null;
 
       if (existingLike) {
         // Unlike the post
@@ -575,16 +588,40 @@ export class PostController {
         });
         message = 'Post unliked successfully';
         liked = false;
+
+        // Broadcast unlike event
+        const realtimeService = getRealtimeService();
+        if (realtimeService) {
+          realtimeService.broadcastPostUnlike(id, userId, post.authorId);
+        }
       } else {
         // Like the post
-        await prisma.like.create({
+        const newLike = await prisma.like.create({
           data: {
             userId,
             postId: id,
           },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+                verified: true,
+              },
+            },
+          },
         });
         message = 'Post liked successfully';
         liked = true;
+        likeData = newLike;
+
+        // Broadcast like event
+        const realtimeService = getRealtimeService();
+        if (realtimeService) {
+          realtimeService.broadcastPostLike(id, newLike);
+        }
       }
 
       // Get updated like count

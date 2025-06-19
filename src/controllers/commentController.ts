@@ -11,6 +11,7 @@ import {
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import emailService from '../services/emailService';
+import { getRealtimeService } from '../services/realtimeInstance';
 
 const prisma = new PrismaClient();
 
@@ -405,6 +406,12 @@ export class CommentController {
         // Don't fail the request if email fails
       }
 
+      // Broadcast new comment via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastNewComment(newComment);
+      }
+
       logger.info(`New comment created: ${newComment.id} by user: ${userId}`);
       created(res, newComment, 'Comment created successfully');
     } catch (error) {
@@ -463,7 +470,11 @@ export class CommentController {
             },
           },
         },
-      });
+      }); // Broadcast comment update via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastCommentUpdate(updatedComment);
+      }
 
       logger.info(`Comment updated: ${id} by user: ${userId}`);
       success(res, updatedComment, 'Comment updated successfully');
@@ -529,9 +540,7 @@ export class CommentController {
             },
           },
         });
-      }
-
-      // Cleanup media files from Cloudinary
+      } // Cleanup media files from Cloudinary
       if (mediaUrls.length > 0) {
         try {
           for (const mediaUrl of mediaUrls) {
@@ -544,6 +553,12 @@ export class CommentController {
           logger.warn('Failed to cleanup comment media files:', cleanupError);
           // Don't fail the request if cleanup fails
         }
+      }
+
+      // Broadcast comment deletion via Socket.IO
+      const realtimeService = getRealtimeService();
+      if (realtimeService) {
+        realtimeService.broadcastCommentDelete(id, comment.postId, userId);
       }
 
       logger.info(`Comment deleted: ${id} by user: ${userId}`);
@@ -565,11 +580,10 @@ export class CommentController {
       if (!userId) {
         unauthorized(res, 'Authentication required');
         return;
-      }
-
-      // Verify comment exists
+      } // Verify comment exists
       const comment = await prisma.comment.findUnique({
         where: { id },
+        select: { id: true, userId: true, postId: true },
       });
 
       if (!comment) {
@@ -586,8 +600,8 @@ export class CommentController {
           },
         },
       });
-
       let isLiked: boolean;
+      let likeData = null;
 
       if (existingLike) {
         // Unlike
@@ -605,13 +619,31 @@ export class CommentController {
         });
 
         isLiked = false;
+
+        // Broadcast unlike event
+        const realtimeService = getRealtimeService();
+        if (realtimeService) {
+          realtimeService.broadcastCommentUnlike(id, userId, comment.userId);
+        }
+
         logger.info(`Comment unliked: ${id} by user: ${userId}`);
       } else {
         // Like
-        await prisma.commentLike.create({
+        const newLike = await prisma.commentLike.create({
           data: {
             userId,
             commentId: id,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatar: true,
+                verified: true,
+              },
+            },
           },
         });
 
@@ -625,6 +657,14 @@ export class CommentController {
         });
 
         isLiked = true;
+        likeData = newLike;
+
+        // Broadcast like event
+        const realtimeService = getRealtimeService();
+        if (realtimeService) {
+          realtimeService.broadcastCommentLike(id, newLike);
+        }
+
         logger.info(`Comment liked: ${id} by user: ${userId}`);
       }
 

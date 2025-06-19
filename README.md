@@ -19,6 +19,20 @@ A modern social media backend with complete user management, file storage, and e
 - ✅ **Email Service** with HTML templates and notifications
 - ✅ **Folder Structure** organized for Cloudinary assets
 - ✅ **Complete API functionality** with examples
+- ✅ **Post & Comment System** with full CRUD operations
+- ✅ **Media Upload** for posts and comments (images, videos, audio, documents)
+- ✅ **Email Notifications** for comments and replies
+- ✅ **Like System** for posts and comments
+- ✅ **Real-time Features** with Socket.IO for instant updates
+
+### 🔌 Real-time Features
+
+- **Socket.IO Integration** - Real-time communication
+- **Post Events** - Instant updates for post creation, updates, deletion, likes
+- **Comment Events** - Real-time comment notifications and interactions
+- **User Presence** - Online/offline status and typing indicators
+- **Room-based Broadcasting** - Efficient event distribution
+- **JWT Authentication** - Secure socket connections
 
 ### 🛡️ Security
 
@@ -740,6 +754,36 @@ prisma/
 └── seed.ts         # Database seeding
 ```
 
+## 🧪 Real-time Testing
+
+### Socket.IO Client Test
+
+```bash
+# Start Socket.IO client for realtime events
+node test-realtime.js
+```
+
+### API Actions Test
+
+```bash
+# Run API operations to trigger realtime events
+node test-api-realtime.js
+```
+
+### Test Workflow:
+
+1. Start the server: `npm run dev`
+2. In terminal 2: Run `node test-realtime.js` (Socket.IO client)
+3. In terminal 3: Run `node test-api-realtime.js` (API operations)
+4. Watch real-time events in terminal 2!
+
+### Real-time Events:
+
+- 📝 Post created/updated/deleted/liked
+- 💬 Comment created/updated/deleted/liked
+- 👥 User online/offline status
+- ✍️ Typing indicators
+
 ## 🌍 Environment Variables
 
 ```env
@@ -747,12 +791,15 @@ DATABASE_URL="postgresql://username:password@localhost:5432/twilsta_db?schema=pu
 PORT=5000
 NODE_ENV=development
 JWT_SECRET=your_jwt_secret_here
+CORS_ORIGIN=http://localhost:3000
 ```
 
 ## 📝 Development Notes
 
 - Server chạy trên port 5000 (có thể thay đổi qua PORT env)
 - Database connection được test khi server khởi động
+- Socket.IO realtime features hoạt động trên cùng port với HTTP server
+- JWT authentication required cho Socket.IO connections
 - Graceful shutdown được handle cho SIGINT và SIGTERM
 - Error logging và handling được implement
 - CORS enabled cho tất cả origins (development)
