@@ -67,6 +67,11 @@ model User {
   blockedBy    Block[]  @relation("BlockedUser")
   reports      Report[]
 
+  @@index([username])
+  @@index([email])
+  @@index([createdAt])
+  @@index([lastActiveAt])
+  @@index([verified])
   @@map("users")
 }
 
@@ -80,6 +85,9 @@ model Follow {
   following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([createdAt])
   @@map("follows")
 }
 
@@ -128,6 +136,14 @@ model Post {
   reposts  Repost[]
   reports  Report[]
 
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentId])
+  @@index([replyToId])
+  @@index([type])
+  @@index([isPublic])
+  @@index([authorId, createdAt])
+  @@index([parentId, createdAt])
   @@map("posts")
 }
 
@@ -141,6 +157,9 @@ model Like {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
   @@map("likes")
 }
 
@@ -164,6 +183,14 @@ model Comment {
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Comment[] @relation("CommentReplies")
 
+  @@index([userId])
+  @@index([postId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@index([depth])
+  @@index([postId, parentId])
+  @@index([postId, createdAt])
+  @@index([path])
   @@map("comments")
 }
 
@@ -178,6 +205,9 @@ model Repost {
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
   @@map("reposts")
 }
 
@@ -216,6 +246,13 @@ model Message {
   replyTo  Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: Cascade)
   replies  Message[] @relation("MessageReplies")
 
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([type])
+  @@index([senderId, receiverId])
+  @@index([receiverId, isRead])
   @@map("messages")
 }
 
@@ -249,6 +286,10 @@ model Conversation {
   participants ConversationParticipant[]
   messages     ConversationMessage[]
 
+  @@index([type])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([lastMessageAt])
   @@map("conversations")
 }
 
@@ -272,6 +313,11 @@ model ConversationParticipant {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+  @@index([role])
+  @@index([isActive])
+  @@index([lastReadAt])
   @@map("conversation_participants")
 }
 
@@ -315,6 +361,13 @@ model ConversationMessage {
   replyTo      ConversationMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: Cascade)
   replies      ConversationMessage[] @relation("MessageReplies")
 
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([isDeleted])
+  @@index([conversationId, createdAt])
+  @@index([conversationId, isDeleted])
   @@map("conversation_messages")
 }
 
@@ -329,6 +382,9 @@ model MessageReaction {
   user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+  @@index([emoji])
   @@map("message_reactions")
 }
 
@@ -342,6 +398,9 @@ model MessageReadReceipt {
   message ConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+  @@index([readAt])
   @@map("message_read_receipts")
 }
 
@@ -357,6 +416,12 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
+  @@index([userId, type])
   @@map("notifications")
 }
 
@@ -370,6 +435,8 @@ model Block {
   blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
   @@map("blocks")
 }
 
@@ -385,6 +452,11 @@ model Report {
   reporter User  @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   post     Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  @@index([reporterId])
+  @@index([postId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
   @@map("reports")
 }
 
