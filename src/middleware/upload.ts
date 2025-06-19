@@ -12,16 +12,24 @@ const allowedImageTypes = [
   'image/webp',
 ];
 const allowedVideoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv'];
+const allowedAudioTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac'];
 const allowedDocumentTypes = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain',
 ];
 
 // File size limits (in bytes)
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_MESSAGE_FILE_SIZE = 25 * 1024 * 1024; // 25MB for message files
 
 // Configure multer to store files in memory
 const storage = multer.memoryStorage();
@@ -265,6 +273,71 @@ export const handleUploadError = (
 
   next(error);
 };
+
+/**
+ * Message file upload middleware - supports images, videos, audio, documents
+ */
+const messageFileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback,
+) => {
+  const allAllowedTypes = [
+    ...allowedImageTypes,
+    ...allowedVideoTypes,
+    ...allowedAudioTypes,
+    ...allowedDocumentTypes,
+  ];
+
+  if (!allAllowedTypes.includes(file.mimetype)) {
+    logger.warn(`Invalid message file type uploaded: ${file.mimetype}`);
+    return cb(
+      new Error(
+        `Invalid file type. Allowed types: images, videos, audio, documents`,
+      ),
+    );
+  }
+
+  // Check specific size limits by type
+  let maxSize = MAX_MESSAGE_FILE_SIZE;
+  if (allowedImageTypes.includes(file.mimetype)) {
+    maxSize = MAX_IMAGE_SIZE;
+  } else if (allowedVideoTypes.includes(file.mimetype)) {
+    maxSize = MAX_VIDEO_SIZE;
+  } else if (allowedAudioTypes.includes(file.mimetype)) {
+    maxSize = MAX_AUDIO_SIZE;
+  } else if (allowedDocumentTypes.includes(file.mimetype)) {
+    maxSize = MAX_DOCUMENT_SIZE;
+  }
+
+  if (file.size && file.size > maxSize) {
+    logger.warn(`Message file too large: ${file.size} bytes`);
+    return cb(new Error(`File too large. Maximum size: ${maxSize / 1024 / 1024}MB`));
+  }
+
+  cb(null, true);
+};
+
+export const uploadMessageFile = multer({
+  storage,
+  fileFilter: messageFileFilter,
+  limits: {
+    fileSize: MAX_MESSAGE_FILE_SIZE,
+    files: 1, // Single file per message
+  },
+}).single('file');
+
+/**
+ * Conversation avatar upload middleware
+ */
+export const uploadConversationAvatar = multer({
+  storage,
+  fileFilter: createFileFilter(allowedImageTypes, MAX_IMAGE_SIZE),
+  limits: {
+    fileSize: MAX_IMAGE_SIZE,
+    files: 1,
+  },
+}).single('avatar');
 
 /**
  * Validate uploaded files middleware

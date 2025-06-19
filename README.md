@@ -24,14 +24,18 @@ A modern social media backend with complete user management, file storage, and e
 - ✅ **Email Notifications** for comments and replies
 - ✅ **Like System** for posts and comments
 - ✅ **Real-time Features** with Socket.IO for instant updates
+- ✅ **Message & Conversation System** with real-time messaging and media support
+- ✅ **Cloudinary Integration** for all media files with organized folder structure
 
 ### 🔌 Real-time Features
 
 - **Socket.IO Integration** - Real-time communication
 - **Post Events** - Instant updates for post creation, updates, deletion, likes
 - **Comment Events** - Real-time comment notifications and interactions
+- **Message Events** - Real-time messaging with media support
+- **Conversation Events** - Group chat updates and participant management
 - **User Presence** - Online/offline status and typing indicators
-- **Room-based Broadcasting** - Efficient event distribution
+- **Room-based Broadcasting** - Efficient event distribution for conversations
 - **JWT Authentication** - Secure socket connections
 
 ### 🛡️ Security
@@ -606,95 +610,436 @@ Request Body:
 }
 ```
 
-### Email Notifications
+### 💬 Message System
 
-Comments trigger automatic email notifications:
+The message system provides real-time messaging capabilities with media support and Cloudinary integration.
 
-1. **Comment on Post**: Notifies post author when someone comments
-2. **Reply to Comment**: Notifies original commenter when someone replies
-3. **HTML Email Templates**: Beautiful, responsive email designs
-4. **Smart Content**: Truncated content for readability
+#### Get Messages in Conversation
 
-### Query Parameters
+```
+GET /api/messages/:conversationId?page=1&limit=50
+```
 
-#### Pagination
+Headers:
+```
+Authorization: Bearer <token>
+```
 
-- `page`: Page number (default: 1)
-- `limit`: Items per page (default: 10, max: 100)
-
-#### User Search
-
-- `search`: Search in username, displayName (case-insensitive)
-- `verified`: Filter by verification status (true/false)
-
-#### Post Filters
-
-- `type`: Post type (TEXT, IMAGE, VIDEO, AUDIO, MIXED)
-- `authorId`: Filter by author ID
-- `parentId`: Filter by parent post ID (for replies)
-
-### Error Responses
-
-All endpoints return standardized error responses:
+Response:
 
 ```json
 {
-  "success": false,
-  "message": "Error description",
+  "success": true,
+  "message": "Messages retrieved successfully",
+  "data": [
+    {
+      "id": "message_id",
+      "content": "Hello there!",
+      "type": "TEXT",
+      "senderId": "user_id",
+      "conversationId": "conversation_id",
+      "mediaUrl": null,
+      "mediaThumbnail": null,
+      "mediaType": null,
+      "mediaDuration": null,
+      "isEdited": false,
+      "isDeleted": false,
+      "createdAt": "2025-06-20T10:30:00.000Z",
+      "updatedAt": "2025-06-20T10:30:00.000Z",
+      "sender": {
+        "id": "user_id",
+        "username": "johndoe",
+        "displayName": "John Doe",
+        "avatar": "https://res.cloudinary.com/..."
+      },
+      "reactions": [
+        {
+          "id": "reaction_id",
+          "type": "LIKE",
+          "userId": "user_id",
+          "user": {
+            "username": "janedoe",
+            "displayName": "Jane Doe"
+          }
+        }
+      ],
+      "readReceipts": [
+        {
+          "id": "receipt_id",
+          "userId": "user_id",
+          "readAt": "2025-06-20T10:31:00.000Z",
+          "user": {
+            "username": "janedoe",
+            "displayName": "Jane Doe"
+          }
+        }
+      ]
+    }
+  ],
   "meta": {
-    "timestamp": "2025-06-20T02:35:34.123Z"
+    "page": 1,
+    "limit": 50,
+    "total": 1,
+    "totalPages": 1
   }
 }
 ```
 
-Common HTTP Status Codes:
-
-- `200`: Success
-- `201`: Created
-- `400`: Bad Request
-- `401`: Unauthorized
-- `404`: Not Found
-- `422`: Validation Error
-- `429`: Too Many Requests
-- `500`: Internal Server Error
-
-### File Upload Specifications
-
-#### Supported File Types
-
-- Images: JPG, JPEG, PNG, GIF, WebP
-
-#### Size Limits
-
-- Avatar: Maximum 5MB
-- Cover Image: Maximum 10MB
-
-#### Cloudinary Folder Structure
+#### Send Message
 
 ```
-/twilsta/
-├── user/avatar/{userId}_{timestamp}
-├── user/cover/{userId}_{timestamp}
-├── post/media/{postId}_{timestamp}
-└── message/attachments/{messageId}_{timestamp}
+POST /api/messages/:conversationId
 ```
 
-### Email Notifications
+Headers:
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
 
-Automatic email notifications are sent for:
+Form Data:
+- `content` (optional): Text content of the message
+- `type` (optional): Message type (TEXT, IMAGE, VIDEO, AUDIO, DOCUMENT) - defaults to TEXT
+- `media` (optional): Media file to upload
 
-- ✅ **Welcome Email**: User registration
-- ✅ **Follow Notification**: When someone follows you
-- ✅ **Password Change**: Password update confirmation
-- ✅ **Account Deactivation**: Account deactivation notice
+Response:
 
-### Rate Limiting
+```json
+{
+  "success": true,
+  "message": "Message sent successfully",
+  "data": {
+    "id": "message_id",
+    "content": "Hello with image!",
+    "type": "IMAGE",
+    "senderId": "user_id",
+    "conversationId": "conversation_id",
+    "mediaUrl": "https://res.cloudinary.com/twilsta/image/upload/v123/messages/image.jpg",
+    "mediaThumbnail": "https://res.cloudinary.com/twilsta/image/upload/c_thumb,w_150,h_150/v123/messages/image.jpg",
+    "mediaType": "image/jpeg",
+    "mediaDuration": null,
+    "isEdited": false,
+    "isDeleted": false,
+    "createdAt": "2025-06-20T10:30:00.000Z",
+    "updatedAt": "2025-06-20T10:30:00.000Z"
+  }
+}
+```
 
-- **General API**: 100 requests per 15 minutes per IP
-- **Authentication**: 5 requests per 15 minutes per IP
-- **File Upload**: Special handling with size validation
+#### Edit Message
 
-````
+```
+PUT /api/messages/:messageId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Request Body:
+
+```json
+{
+  "content": "Updated message content"
+}
+```
+
+#### Delete Message
+
+```
+DELETE /api/messages/:messageId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+- Automatically deletes media files from Cloudinary
+- Broadcasts real-time delete event to conversation participants
+
+#### React to Message
+
+```
+POST /api/messages/:messageId/react
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Request Body:
+
+```json
+{
+  "type": "LIKE"
+}
+```
+
+Available reaction types: `LIKE`, `LOVE`, `LAUGH`, `WOW`, `SAD`, `ANGRY`
+
+#### Mark Messages as Read
+
+```
+POST /api/messages/:conversationId/read
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Request Body:
+
+```json
+{
+  "messageId": "last_read_message_id"
+}
+```
+
+### 👥 Conversation System
+
+The conversation system manages both direct and group conversations with real-time features.
+
+#### Get User Conversations
+
+```
+GET /api/conversations?page=1&limit=20
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Conversations retrieved successfully",
+  "data": [
+    {
+      "id": "conversation_id",
+      "type": "GROUP",
+      "name": "Project Team",
+      "description": "Discussion about the new project",
+      "avatar": "https://res.cloudinary.com/twilsta/image/upload/v123/conversations/avatar.jpg",
+      "createdAt": "2025-06-20T09:00:00.000Z",
+      "lastMessageAt": "2025-06-20T10:30:00.000Z",
+      "participants": [
+        {
+          "id": "participant_id",
+          "userId": "user_id",
+          "role": "ADMIN",
+          "joinedAt": "2025-06-20T09:00:00.000Z",
+          "user": {
+            "id": "user_id",
+            "username": "johndoe",
+            "displayName": "John Doe",
+            "avatar": "https://res.cloudinary.com/...",
+            "verified": true
+          }
+        }
+      ],
+      "lastMessage": {
+        "id": "message_id",
+        "content": "Great work everyone!",
+        "type": "TEXT",
+        "createdAt": "2025-06-20T10:30:00.000Z",
+        "sender": {
+          "username": "johndoe",
+          "displayName": "John Doe",
+          "avatar": "https://res.cloudinary.com/..."
+        }
+      },
+      "messageCount": 45,
+      "unreadCount": 3
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### Get Conversation Details
+
+```
+GET /api/conversations/:conversationId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+#### Create Conversation
+
+```
+POST /api/conversations
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+Form Data:
+- `participantIds`: Array of user IDs to add to conversation
+- `type` (optional): Conversation type (DIRECT, GROUP) - defaults to DIRECT for 2 participants
+- `name` (optional): Group name (required for GROUP type)
+- `description` (optional): Group description
+- `avatar` (optional): Group avatar image file
+
+Request Body (JSON alternative):
+
+```json
+{
+  "participantIds": ["user_id_1", "user_id_2"],
+  "type": "GROUP",
+  "name": "New Group Chat",
+  "description": "Discussion group for our team"
+}
+```
+
+#### Update Conversation
+
+```
+PUT /api/conversations/:conversationId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+Form Data:
+- `name` (optional): Updated group name
+- `description` (optional): Updated group description
+- `avatar` (optional): Updated group avatar image file
+
+#### Add Participants
+
+```
+POST /api/conversations/:conversationId/participants
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Request Body:
+
+```json
+{
+  "participantIds": ["user_id_1", "user_id_2"]
+}
+```
+
+#### Remove Participant
+
+```
+DELETE /api/conversations/:conversationId/participants/:participantId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+#### Leave Conversation
+
+```
+POST /api/conversations/:conversationId/leave
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+#### Delete Conversation
+
+```
+DELETE /api/conversations/:conversationId
+```
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+Note: Only available for GROUP conversations and requires ADMIN role.
+
+### 🔌 Real-time Events (Socket.IO)
+
+#### Authentication
+
+```javascript
+const socket = io('http://localhost:5000', {
+  auth: {
+    token: 'your_jwt_token'
+  }
+});
+```
+
+#### Message Events
+
+**Client to Server:**
+- `join-conversation`: Join conversation room
+- `leave-conversation`: Leave conversation room
+- `typing`: Send typing indicator
+- `stop-typing`: Stop typing indicator
+
+**Server to Client:**
+- `message:new`: New message received
+- `message:updated`: Message was edited
+- `message:deleted`: Message was deleted
+- `message:reaction`: Message reaction added/removed
+- `message:read`: Message read receipt updated
+- `typing`: User is typing
+- `stop-typing`: User stopped typing
+
+#### Conversation Events
+
+**Server to Client:**
+- `conversation:created`: New conversation created
+- `conversation:updated`: Conversation details updated
+- `conversation:participant-added`: New participant added
+- `conversation:participant-removed`: Participant removed
+- `conversation:deleted`: Conversation deleted
+
+#### Example Socket.IO Client Usage
+
+```javascript
+// Join conversation room
+socket.emit('join-conversation', { conversationId: 'conv_id' });
+
+// Listen for new messages
+socket.on('message:new', (message) => {
+  console.log('New message:', message);
+});
+
+// Send typing indicator
+socket.emit('typing', { 
+  conversationId: 'conv_id',
+  isTyping: true 
+});
+
+// Listen for typing indicators
+socket.on('typing', ({ userId, isTyping, conversationId }) => {
+  console.log(`User ${userId} is ${isTyping ? 'typing' : 'stopped typing'}`);
+});
+```
 
 ## 🗄️ Database Models
 
@@ -711,7 +1056,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-````
+```
 
 ### Post
 
@@ -763,6 +1108,13 @@ prisma/
 node test-realtime.js
 ```
 
+### Messaging System Test
+
+```bash
+# Test complete messaging system with real-time features
+node test-messaging-realtime.js
+```
+
 ### API Actions Test
 
 ```bash
@@ -781,8 +1133,10 @@ node test-api-realtime.js
 
 - 📝 Post created/updated/deleted/liked
 - 💬 Comment created/updated/deleted/liked
+- 💬 Message sent/updated/deleted/reacted
+- 👥 Conversation created/updated/participant changes
 - 👥 User online/offline status
-- ✍️ Typing indicators
+- ✍️ Typing indicators in conversations
 
 ## 🌍 Environment Variables
 

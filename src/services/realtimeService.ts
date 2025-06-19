@@ -77,13 +77,14 @@ class RealtimeService {
       }
     });
   }
-
   private setupEventHandlers(): void {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
       this.handleConnection(socket);
       this.handleDisconnection(socket);
       this.handlePostEvents(socket);
       this.handleCommentEvents(socket);
+      this.handleMessageEvents(socket);
+      this.handleConversationEvents(socket);
       this.handleUserEvents(socket);
     });
   }
@@ -192,7 +193,89 @@ class RealtimeService {
           timestamp: new Date(),
         });
       },
-    );
+    );  }
+
+  private handleMessageEvents(socket: AuthenticatedSocket): void {
+    // Join conversation room
+    socket.on('join:conversation', (data: { conversationId: string }) => {
+      socket.join(`conversation:${data.conversationId}`);
+      logger.info(
+        `User ${socket.username} joined conversation: ${data.conversationId}`,
+      );
+    });
+
+    // Leave conversation room
+    socket.on('leave:conversation', (data: { conversationId: string }) => {
+      socket.leave(`conversation:${data.conversationId}`);
+      logger.info(
+        `User ${socket.username} left conversation: ${data.conversationId}`,
+      );
+    });
+
+    // Handle typing indicators
+    socket.on('typing:start', (data: { conversationId: string }) => {
+      socket.broadcast
+        .to(`conversation:${data.conversationId}`)
+        .emit('user:typing', {
+          userId: socket.userId,
+          username: socket.username,
+          conversationId: data.conversationId,
+          isTyping: true,
+          timestamp: new Date(),
+        });
+    });
+
+    socket.on('typing:stop', (data: { conversationId: string }) => {
+      socket.broadcast
+        .to(`conversation:${data.conversationId}`)
+        .emit('user:typing', {
+          userId: socket.userId,
+          username: socket.username,
+          conversationId: data.conversationId,
+          isTyping: false,
+          timestamp: new Date(),
+        });
+    });
+  }
+
+  private handleConversationEvents(socket: AuthenticatedSocket): void {
+    // Join user's conversations on connect
+    socket.on('join:conversations', async () => {
+      try {
+        // Get user's active conversations
+        const conversations = await prisma.conversationParticipant.findMany({
+          where: {
+            userId: socket.userId,
+            isActive: true,
+          },
+          select: {
+            conversationId: true,
+          },
+        });
+
+        // Join all conversation rooms
+        conversations.forEach((conv) => {
+          socket.join(`conversation:${conv.conversationId}`);
+        });
+
+        logger.info(
+          `User ${socket.username} joined ${conversations.length} conversation rooms`,
+        );
+      } catch (error) {
+        logger.error('Error joining conversations:', error);
+      }
+    });
+
+    // Handle conversation creation notification
+    socket.on('conversation:created', (data: { conversation: any }) => {
+      // Notify all participants
+      data.conversation.participants?.forEach((participant: any) => {
+        this.io.to(`user:${participant.userId}`).emit('conversation:created', {
+          conversation: data.conversation,
+          timestamp: new Date(),
+        });
+      });
+    });
   }
 
   private handleUserEvents(socket: AuthenticatedSocket): void {
@@ -445,7 +528,117 @@ class RealtimeService {
     });
     logger.info(
       `Broadcasted follow: ${follower.username} followed user ${followingId}`,
+    );  }
+
+  /**
+   * Broadcast new message in conversation
+   */
+  public broadcastNewMessage(conversationId: string, message: any): void {
+    this.io.to(`conversation:${conversationId}`).emit('message:created', {
+      message,
+      timestamp: new Date(),
+    });
+    logger.info(
+      `Broadcasted new message: ${message.id} in conversation: ${conversationId}`,
     );
+  }
+
+  /**
+   * Broadcast message update
+   */
+  public broadcastMessageUpdate(conversationId: string, message: any): void {
+    this.io.to(`conversation:${conversationId}`).emit('message:updated', {
+      message,
+      timestamp: new Date(),
+    });
+    logger.info(
+      `Broadcasted message update: ${message.id} in conversation: ${conversationId}`,
+    );
+  }
+
+  /**
+   * Broadcast message deletion
+   */
+  public broadcastMessageDelete(
+    conversationId: string,
+    messageId: string,
+    userId: string,
+  ): void {
+    this.io.to(`conversation:${conversationId}`).emit('message:deleted', {
+      messageId,
+      userId,
+      timestamp: new Date(),
+    });
+    logger.info(
+      `Broadcasted message deletion: ${messageId} in conversation: ${conversationId}`,
+    );
+  }
+
+  /**
+   * Broadcast message reaction
+   */
+  public broadcastMessageReaction(
+    conversationId: string,
+    messageId: string,
+    reaction: any,
+  ): void {
+    this.io.to(`conversation:${conversationId}`).emit('message:reaction', {
+      messageId,
+      reaction,
+      timestamp: new Date(),
+    });
+    logger.info(
+      `Broadcasted message reaction: ${messageId} in conversation: ${conversationId}`,
+    );
+  }
+
+  /**
+   * Broadcast message read receipt
+   */
+  public broadcastMessageRead(
+    conversationId: string,
+    userId: string,
+    messageId: string,
+  ): void {
+    this.io.to(`conversation:${conversationId}`).emit('message:read', {
+      userId,
+      messageId,
+      timestamp: new Date(),
+    });
+    logger.info(
+      `Broadcasted message read: ${messageId} by user: ${userId} in conversation: ${conversationId}`,
+    );
+  }
+
+  /**
+   * Broadcast typing indicator
+   */
+  public broadcastTyping(
+    conversationId: string,
+    userId: string,
+    isTyping: boolean,
+  ): void {
+    this.io.to(`conversation:${conversationId}`).emit('user:typing', {
+      userId,
+      isTyping,
+      timestamp: new Date(),
+    });
+  }
+
+  /**
+   * Broadcast conversation update
+   */
+  public broadcastConversationUpdate(conversation: any): void {
+    // Broadcast to all participants
+    if (conversation.participants) {
+      conversation.participants.forEach((participant: any) => {
+        this.io.to(`user:${participant.userId}`).emit('conversation:updated', {
+          conversation,
+          timestamp: new Date(),
+        });
+      });
+    }
+    logger.info(`Broadcasted conversation update: ${conversation.id}`);
   }
 
   /**

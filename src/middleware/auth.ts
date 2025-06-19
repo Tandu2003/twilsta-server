@@ -17,7 +17,8 @@ declare global {
 }
 
 /**
- * Middleware to authenticate JWT tokens from httpOnly cookies
+ * Middleware to authenticate JWT tokens from Authorization header or cookies
+ * Supports both Bearer token format and cookie-based authentication
  */
 export const authenticateToken = async (
   req: Request,
@@ -25,8 +26,17 @@ export const authenticateToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const accessToken =
-      req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
+    let accessToken: string | undefined;
+
+    // Try to get token from Authorization header first (for API requests)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+    } else {
+      // Fallback to cookie-based auth (for web requests)
+      accessToken =
+        req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
+    }
 
     if (!accessToken) {
       unauthorized(
@@ -50,10 +60,11 @@ export const authenticateToken = async (
     req.user = payload;
 
     logger.debug(`Authenticated user: ${payload.userId}`);
-    next();
-  } catch (error) {
+    next();  } catch (error) {
     logger.error('Token authentication failed:', error);
-    internalError(res, 'Authentication failed');
+    if (!res.headersSent) {
+      unauthorized(res, 'Authentication failed');
+    }
   }
 };
 

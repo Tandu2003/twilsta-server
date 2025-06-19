@@ -338,45 +338,67 @@ export const commentValidations = {
  * Message validation schemas based on Prisma Message model
  */
 export const messageValidations = {
-  send: [
+  sendMessage: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
     body('content')
       .optional()
       .trim()
-      .isLength({ max: 5000 })
-      .withMessage('Message content must not exceed 5000 characters'),
+      .isLength({ min: 1, max: 10000 })
+      .withMessage('Message content must be between 1 and 10000 characters'),
     body('type')
       .optional()
-      .isIn([
-        'TEXT',
-        'IMAGE',
-        'VIDEO',
-        'AUDIO',
-        'FILE',
-        'STICKER',
-        'GIF',
-        'LOCATION',
-      ])
-      .withMessage('Message type must be valid'),
-    body('receiverId')
-      .isLength({ min: 25, max: 25 })
-      .matches(/^c[a-z0-9]{24}$/)
-      .withMessage('Receiver ID must be a valid CUID'),
+      .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE'])
+      .withMessage('Invalid message type'),
     body('replyToId')
       .optional()
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
-      .withMessage('Reply to ID must be a valid CUID'),
-    body('imageUrl').optional().isURL().withMessage('Image URL must be valid'),
-    body('videoUrl').optional().isURL().withMessage('Video URL must be valid'),
-    body('audioUrl').optional().isURL().withMessage('Audio URL must be valid'),
-    body('fileUrl').optional().isURL().withMessage('File URL must be valid'),
+      .withMessage('Reply message ID must be a valid CUID'),
   ],
-
-  getConversation: [
-    param('userId')
+  editMessage: [
+    param('messageId')
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
-      .withMessage('User ID must be a valid CUID'),
+      .withMessage('Message ID must be a valid CUID'),
+    body('content')
+      .trim()
+      .isLength({ min: 1, max: 10000 })
+      .withMessage('Message content must be between 1 and 10000 characters'),
+  ],
+  deleteMessage: [
+    param('messageId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Message ID must be a valid CUID'),
+  ],
+  reactToMessage: [
+    param('messageId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Message ID must be a valid CUID'),
+    body('emoji')
+      .trim()
+      .isLength({ min: 1, max: 10 })
+      .withMessage('Emoji must be between 1 and 10 characters'),
+  ],
+  markAsRead: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+    body('messageId')
+      .optional()
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Message ID must be a valid CUID'),
+  ],  getMessages: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
     commonValidations.page,
     commonValidations.limit,
   ],
@@ -419,7 +441,109 @@ export const reportValidations = {
       .optional()
       .trim()
       .isLength({ max: 1000 })
-      .withMessage('Description must not exceed 1000 characters'),
+      .withMessage('Description must not exceed 1000 characters'),  ],
+};
+
+/**
+ * Conversation Validations
+ */
+export const conversationValidations = {
+  createConversation: [
+    body('participantIds')
+      .isArray({ min: 1 })
+      .withMessage('Participant IDs must be an array with at least one ID'),
+    body('participantIds.*')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Each participant ID must be a valid CUID'),
+    body('type')
+      .optional()
+      .isIn(['DIRECT', 'GROUP'])
+      .withMessage('Conversation type must be DIRECT or GROUP'),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Group name must be between 1 and 100 characters'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Description must not exceed 500 characters'),
+  ],
+  updateConversation: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Group name must be between 1 and 100 characters'),
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 })
+      .withMessage('Description must not exceed 500 characters'),
+  ],
+  getConversation: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+  ],
+  addParticipants: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+    body('participantIds')
+      .isArray({ min: 1 })
+      .withMessage('Participant IDs must be an array with at least one ID'),
+    body('participantIds.*')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Each participant ID must be a valid CUID'),
+  ],
+  removeParticipant: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+    param('participantId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Participant ID must be a valid CUID'),
+  ],
+  updateParticipantRole: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+    param('userId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('User ID must be a valid CUID'),
+    body('role')
+      .isIn(['MEMBER', 'ADMIN'])
+      .withMessage('Role must be MEMBER or ADMIN'),
+  ],
+  leaveConversation: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+  ],
+  deleteConversation: [
+    param('conversationId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Conversation ID must be a valid CUID'),
+  ],
+  getConversations: [
+    commonValidations.page,
+    commonValidations.limit,
   ],
 };
 

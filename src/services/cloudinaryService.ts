@@ -19,6 +19,7 @@ export interface UploadResult {
   format?: string;
   resource_type: string;
   bytes: number;
+  duration?: number; // For video/audio files
 }
 
 class CloudinaryService {
@@ -68,8 +69,7 @@ class CloudinaryService {
             logger.error('Cloudinary upload failed:', error);
             reject(error);
           } else if (result) {
-            logger.info(`File uploaded to Cloudinary: ${result.secure_url}`);
-            resolve({
+            logger.info(`File uploaded to Cloudinary: ${result.secure_url}`);            resolve({
               public_id: result.public_id,
               secure_url: result.secure_url,
               width: result.width,
@@ -77,6 +77,7 @@ class CloudinaryService {
               format: result.format,
               resource_type: result.resource_type,
               bytes: result.bytes,
+              duration: result.duration, // Include duration for video/audio
             });
           }
         },
@@ -314,19 +315,32 @@ class CloudinaryService {
       return '';
     }
   }
-
   /**
    * Upload file from multer request
    */
   async uploadFile(
     file: Express.Multer.File,
     folder: string,
-    resourceType: 'image' | 'video' | 'auto' = 'auto',
+    resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto',
   ): Promise<UploadResult> {
     return this.uploadBuffer(file.buffer, {
       folder: `twilsta/${folder}`,
       resource_type: resourceType,
       public_id: `${folder.replace('/', '_')}_${Date.now()}`,
+    });
+  }
+
+  /**
+   * Generate video thumbnail URL
+   */
+  generateVideoThumbnail(publicId: string): string {
+    return cloudinary.url(publicId, {
+      resource_type: 'video',
+      transformation: [
+        { width: 300, height: 200, crop: 'fill' },
+        { quality: 'auto:good' },
+        { format: 'jpg' }
+      ]
     });
   }
 }

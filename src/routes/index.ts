@@ -19,6 +19,8 @@ import {
   handleUploadError,
 } from '../middleware/upload';
 import authRoutes from './auth';
+import messageRoutes from './messageRoutes';
+import conversationRoutes from './conversationRoutes';
 
 const router = Router();
 
@@ -27,6 +29,10 @@ router.use(apiLimiter);
 
 // Auth routes with stricter rate limiting
 router.use('/auth', authLimiter, authRoutes);
+
+// Message and Conversation routes
+router.use('/messages', messageRoutes);
+router.use('/conversations', conversationRoutes);
 
 // User routes
 // Public routes
