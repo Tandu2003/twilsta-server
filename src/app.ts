@@ -1,7 +1,17 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import compression from 'compression';
 import apiRoutes from './routes';
+import logger from './utils/logger';
+import { ResponseHelper } from './utils/responseHelper';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
+import { requestLogger, customRequestLogger } from './middleware/logging';
+import {
+  securityHeaders,
+  generalLimiter,
+  requestSizeLimiter,
+} from './middleware/security';
 
 // Load environment variables
 dotenv.config();
@@ -9,7 +19,27 @@ dotenv.config();
 // Create Express application
 const app: Application = express();
 
-// Middleware
+// Security middleware
+app.use(securityHeaders);
+
+// Request logging
+app.use(requestLogger);
+app.use(customRequestLogger);
+
+// Rate limiting
+app.use(generalLimiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Compression middleware
+app.use(compression());
+
+// Request size limiter
+app.use(requestSizeLimiter);
+
+// CORS middleware
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || '*',
@@ -17,39 +47,30 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/api', apiRoutes);
 
 // Health check route
 app.get('/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+  logger.info('Health check requested');
+  ResponseHelper.success(
+    res,
+    {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0',
+    },
+    'Server is healthy',
+  );
 });
 
 // 404 handler
-app.use('*', (req: Request, res: Response) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `The route ${req.originalUrl} does not exist`,
-  });
-});
+app.use('*', notFoundHandler);
 
-// Error handling middleware
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message:
-      process.env.NODE_ENV === 'production'
-        ? 'Something went wrong!'
-        : err.message,
-  });
-});
+// Global error handling middleware
+app.use(errorHandler);
 
 export default app;

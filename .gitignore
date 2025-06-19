@@ -16,7 +16,7 @@ dist/
 build/
 
 # Logs
-logs
+logs/
 *.log
 
 # Runtime data
@@ -67,3 +67,6 @@ ehthumbs.db
 Thumbs.db
 
 /src/generated/prisma
+
+# TypeScript cache
+*.tsbuildinfo

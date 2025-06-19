@@ -1,13 +1,45 @@
 # Twilsta Server
 
-Express.js server với TypeScript và Prisma PostgreSQL cho ứng dụng Twilsta.
+A professional Express.js API server with TypeScript, featuring comprehensive logging, error handling, security middleware, and response helpers.
 
-## 🚀 Tính năng
+## Features
 
-- **Express.js** với TypeScript
-- **Prisma** ORM với PostgreSQL
-- **CORS** enabled
-- **Environment variables** management
+### 🔧 Core Features
+
+- **TypeScript** - Type-safe development
+- **Express.js** - Fast, unopinionated web framework
+- **Prisma** - Modern database toolkit
+- **CORS** - Cross-origin resource sharing
+- **Environment Configuration** - Secure environment variable management
+
+### � Logging & Monitoring
+
+- **Winston** - Professional logging with multiple transports
+- **Morgan** - HTTP request logging middleware
+- **Request/Response Logging** - Detailed request tracking
+- **Error Logging** - Comprehensive error tracking
+
+### 🛡️ Security
+
+- **Helmet** - Security headers middleware
+- **Rate Limiting** - Configurable rate limiting
+- **Request Size Limiting** - Prevent large payload attacks
+- **Input Validation** - Express-validator integration
+- **CORS Protection** - Configurable cross-origin policies
+
+### 🚨 Error Handling
+
+- **Custom Error Classes** - Structured error hierarchy
+- **Global Error Handler** - Centralized error processing
+- **Async Error Catching** - Automatic async error handling
+- **Validation Error Handling** - User-friendly validation responses
+
+### 📊 Response Management
+
+- **Standardized Responses** - Consistent API response format
+- **Response Helpers** - Convenient response methods
+- **Pagination Support** - Built-in pagination helpers
+- **Status Code Management** - Proper HTTP status codes
 - **Error handling** middleware
 - **Health check** endpoint
 - **Database seeding**
@@ -84,6 +116,56 @@ npm start
 - `PUT /api/users/:id` - Cập nhật user
 - `DELETE /api/users/:id` - Xóa user
 
+## API Documentation
+
+### Health Check
+
+```
+GET /health
+```
+
+### User API
+
+```
+GET    /api/users                     - Get all users (with pagination)
+GET    /api/users/:id                 - Get user by ID
+GET    /api/users/username/:username  - Get user by username
+GET    /api/users/:id/followers       - Get user's followers
+GET    /api/users/:id/following       - Get user's following
+POST   /api/auth/register             - Register new user
+PUT    /api/users/:id/profile         - Update user profile (protected)
+PUT    /api/users/:id/password        - Change password (protected)
+DELETE /api/users/:id                 - Delete user account (protected)
+```
+
+### Post API
+
+```
+GET    /api/posts           - Get all posts (with pagination & filters)
+GET    /api/posts/:id       - Get post by ID
+GET    /api/posts/:id/replies - Get post replies
+POST   /api/posts           - Create new post (protected)
+PUT    /api/posts/:id       - Update post (protected)
+DELETE /api/posts/:id       - Delete post (protected)
+POST   /api/posts/:id/like  - Like/Unlike post (protected)
+```
+
+### Query Parameters
+
+#### Pagination
+
+- `page`: Page number (default: 1)
+- `limit`: Items per page (default: 10, max: 100)
+- `search`: Search query for users
+
+#### Post Filters
+
+- `type`: Post type (TEXT, IMAGE, VIDEO, AUDIO, MIXED)
+- `authorId`: Filter by author ID
+- `parentId`: Filter by parent post ID (for replies)
+
+````
+
 ## 🗄️ Database Models
 
 ### User
@@ -99,7 +181,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-```
+````
 
 ### Post
 
