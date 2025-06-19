@@ -290,6 +290,45 @@ class CloudinaryService {
       process.env.CLOUDINARY_API_SECRET!,
     );
   }
+
+  /**
+   * Extract public ID from Cloudinary URL
+   */
+  extractPublicIdFromUrl(url: string): string {
+    try {
+      // Extract public ID from Cloudinary URL
+      // Example: https://res.cloudinary.com/demo/image/upload/v1234567890/folder/public_id.jpg
+      const matches = url.match(
+        /\/([^\/]+)\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|mp3|wav)$/i,
+      );
+      if (matches) {
+        return matches[1];
+      }
+
+      // Fallback: extract everything after the last slash and before the extension
+      const parts = url.split('/');
+      const lastPart = parts[parts.length - 1];
+      return lastPart.split('.')[0];
+    } catch (error) {
+      logger.error('Error extracting public ID from URL:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Upload file from multer request
+   */
+  async uploadFile(
+    file: Express.Multer.File,
+    folder: string,
+    resourceType: 'image' | 'video' | 'auto' = 'auto',
+  ): Promise<UploadResult> {
+    return this.uploadBuffer(file.buffer, {
+      folder: `twilsta/${folder}`,
+      resource_type: resourceType,
+      public_id: `${folder.replace('/', '_')}_${Date.now()}`,
+    });
+  }
 }
 
 export default new CloudinaryService();

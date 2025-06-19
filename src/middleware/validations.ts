@@ -259,6 +259,17 @@ export const postValidations = {
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Parent ID must be a valid CUID'),
   ],
+
+  // Remove media from post
+  removeMedia: [
+    body('mediaUrls')
+      .isArray({ min: 1 })
+      .withMessage('At least one media URL must be provided'),
+    body('mediaUrls.*').isURL().withMessage('Each media URL must be valid'),
+    body('mediaType')
+      .isIn(['image', 'video', 'audio'])
+      .withMessage('Media type must be one of: image, video, audio'),
+  ],
 };
 
 /**

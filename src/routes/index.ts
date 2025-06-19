@@ -11,6 +11,7 @@ import { apiLimiter, authLimiter } from '../middleware/security';
 import {
   uploadAvatar,
   uploadCoverImage,
+  uploadPostMedia,
   validateUploadedFiles,
   handleUploadError,
 } from '../middleware/upload';
@@ -193,6 +194,24 @@ router.post(
   crudValidations.getById,
   handleValidationErrors,
   PostController.toggleLike,
+);
+
+// Post media management routes
+router.post(
+  '/posts/:id/media',
+  crudValidations.getById,
+  uploadPostMedia,
+  validateUploadedFiles,
+  handleValidationErrors,
+  PostController.addMedia,
+  handleUploadError,
+);
+
+router.delete(
+  '/posts/:id/media',
+  crudValidations.getById.concat(postValidations.removeMedia),
+  handleValidationErrors,
+  PostController.removeMedia,
 );
 
 export default router;

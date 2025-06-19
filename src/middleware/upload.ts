@@ -82,42 +82,76 @@ export const uploadCoverImage = multer({
 }).single('coverImage');
 
 /**
- * Post media upload middleware (supports multiple files)
+ * Upload middleware for post media (images, videos, audio)
  */
 export const uploadPostMedia = multer({
   storage,
   limits: {
-    fileSize: MAX_VIDEO_SIZE, // Use max video size for all media
-    files: 4, // Max 4 files per post
+    fileSize: MAX_VIDEO_SIZE, // Use largest limit for mixed media
+    files: 10, // Allow up to 10 files per post
   },
-  fileFilter: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: multer.FileFilterCallback,
-  ) => {
-    const isImage = allowedImageTypes.includes(file.mimetype);
-    const isVideo = allowedVideoTypes.includes(file.mimetype);
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      ...allowedImageTypes,
+      ...allowedVideoTypes,
+      'audio/mp3',
+      'audio/wav',
+      'audio/ogg',
+      'audio/aac',
+    ];
 
-    if (!isImage && !isVideo) {
+    if (!allowedTypes.includes(file.mimetype)) {
+      logger.warn(`Invalid media file type uploaded: ${file.mimetype}`);
       return cb(
-        new Error(`Invalid file type. Allowed types: images and videos`),
+        new Error(
+          `Invalid file type. Allowed types: images, videos, audio files`,
+        ),
       );
     }
 
-    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE;
-    if (file.size && file.size > maxSize) {
+    // Check specific size limits based on file type
+    let maxSize = MAX_IMAGE_SIZE;
+    if (file.mimetype.startsWith('video/')) {
+      maxSize = MAX_VIDEO_SIZE;
+    } else if (file.mimetype.startsWith('audio/')) {
+      maxSize = MAX_DOCUMENT_SIZE; // 10MB for audio
+    }
+
+    cb(null, true);
+  },
+}).array('media', 10); // Accept up to 10 files with field name 'media'
+
+/**
+ * Upload middleware for single post media
+ */
+export const uploadSinglePostMedia = multer({
+  storage,
+  limits: {
+    fileSize: MAX_VIDEO_SIZE,
+    files: 1,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      ...allowedImageTypes,
+      ...allowedVideoTypes,
+      'audio/mp3',
+      'audio/wav',
+      'audio/ogg',
+      'audio/aac',
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      logger.warn(`Invalid media file type uploaded: ${file.mimetype}`);
       return cb(
         new Error(
-          `File too large. Maximum size for ${isImage ? 'images' : 'videos'}: ${
-            maxSize / (1024 * 1024)
-          }MB`,
+          `Invalid file type. Allowed types: images, videos, audio files`,
         ),
       );
     }
 
     cb(null, true);
   },
-}).array('media', 4);
+}).single('media');
 
 /**
  * Message attachment upload middleware
@@ -199,7 +233,6 @@ export const validateUploadedFiles = (
   // Check if files were uploaded when expected
   const file = req.file;
   const files = req.files as Express.Multer.File[];
-
   if (!file && !files?.length) {
     badRequest(res, 'No files uploaded');
     return;
@@ -207,31 +240,11 @@ export const validateUploadedFiles = (
 
   // Log upload info
   if (file) {
-    logger.info(
-      `File uploaded: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`,
-    );
+    logger.info(`File uploaded: ${file.originalname}, size: ${file.size}`);
   }
-
   if (files?.length) {
-    logger.info(
-      `${files.length} files uploaded:`,
-      files.map((f) => ({
-        name: f.originalname,
-        type: f.mimetype,
-        size: f.size,
-      })),
-    );
+    logger.info(`Files uploaded: ${files.length} files`);
   }
 
   next();
-};
-
-/**
- * Clean filename for safe storage
- */
-export const cleanFileName = (filename: string): string => {
-  return filename
-    .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
-    .toLowerCase();
 };
