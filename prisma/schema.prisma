@@ -29,6 +29,17 @@ model User {
   verified  Boolean @default(false)
   isPrivate Boolean @default(false)
 
+  // Email verification
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+
+  // Password reset
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+
+  // Refresh tokens
+  refreshTokens RefreshToken[]
+
   // Social stats
   followersCount Int @default(0)
   followingCount Int @default(0)
@@ -504,4 +515,52 @@ enum ParticipantRole {
   ADMIN
   MODERATOR
   MEMBER
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  userAgent String?
+  ipAddress String?
+  isValid   Boolean  @default(true)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isValid])
+  @@map("refresh_tokens")
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
 }

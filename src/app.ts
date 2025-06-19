@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import apiRoutes from './routes';
 import logger from './utils/logger';
 import { ResponseHelper } from './utils/responseHelper';
@@ -32,6 +33,9 @@ app.use(generalLimiter);
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Cookie parsing middleware
+app.use(cookieParser());
 
 // Compression middleware
 app.use(compression());

@@ -8,11 +8,15 @@ import {
   crudValidations,
 } from '../middleware/validations';
 import { apiLimiter, authLimiter } from '../middleware/security';
+import authRoutes from './auth';
 
 const router = Router();
 
 // Apply API rate limiting to all routes
 router.use(apiLimiter);
+
+// Auth routes with stricter rate limiting
+router.use('/auth', authLimiter, authRoutes);
 
 // User routes
 // Public routes

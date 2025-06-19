@@ -1,4 +1,24 @@
-import { body, param, query } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
+import { validationError } from '../utils/responseHelper';
+
+/**
+ * Middleware to handle validation errors
+ */
+export const validateRequest = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    validationError(res, errors.array(), 'Validation failed');
+    return;
+  }
+
+  next();
+};
 
 /**
  * Common validation rules based on Prisma schema
@@ -9,76 +29,80 @@ export const commonValidations = {
     .isLength({ min: 25, max: 25 })
     .matches(/^c[a-z0-9]{24}$/)
     .withMessage('ID must be a valid CUID'),
-    
+
   // Email validation
   email: body('email')
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email address'),
-    
+
   // Strong password validation
   password: body('password')
     .isLength({ min: 8, max: 128 })
     .withMessage('Password must be between 8 and 128 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'),
-    
+    .withMessage(
+      'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character',
+    ),
+
   // Username validation (unique in schema)
   username: body('username')
     .trim()
     .isLength({ min: 3, max: 30 })
     .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage('Username must be 3-30 characters long and contain only letters, numbers, and underscores'),
-    
+    .withMessage(
+      'Username must be 3-30 characters long and contain only letters, numbers, and underscores',
+    ),
+
   // Display name validation
   displayName: body('displayName')
     .optional()
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Display name must be between 1 and 100 characters'),
-    
+
   // Bio validation
   bio: body('bio')
     .optional()
     .trim()
     .isLength({ max: 500 })
     .withMessage('Bio must not exceed 500 characters'),
-    
+
   // Website URL validation
   website: body('website')
     .optional()
     .isURL()
     .withMessage('Please provide a valid website URL'),
-    
+
   // Location validation
   location: body('location')
     .optional()
     .trim()
     .isLength({ max: 100 })
     .withMessage('Location must not exceed 100 characters'),
-    
+
   // Image URL validation (for avatar, coverImage, etc.)
   avatarUrl: body('avatar')
     .optional()
     .isURL()
     .withMessage('Avatar must be a valid URL'),
-    
+
   coverImageUrl: body('coverImage')
     .optional()
     .isURL()
     .withMessage('Cover image must be a valid URL'),
-    
+
   // Pagination
   page: query('page')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Page must be a positive integer'),
-    
+
   limit: query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('Limit must be between 1 and 100'),
-    
+
   // Search
   search: query('search')
     .optional()
@@ -98,18 +122,16 @@ export const userValidations = {
     commonValidations.password,
     commonValidations.displayName,
   ],
-  
+
   // Login user
   login: [
     body('usernameOrEmail')
       .trim()
       .isLength({ min: 3 })
       .withMessage('Username or email is required'),
-    body('password')
-      .notEmpty()
-      .withMessage('Password is required'),
+    body('password').notEmpty().withMessage('Password is required'),
   ],
-  
+
   // Update user profile
   updateProfile: [
     commonValidations.displayName,
@@ -123,7 +145,7 @@ export const userValidations = {
       .isBoolean()
       .withMessage('isPrivate must be a boolean'),
   ],
-  
+
   // Change password
   changePassword: [
     body('currentPassword')
@@ -131,14 +153,16 @@ export const userValidations = {
       .withMessage('Current password is required'),
     commonValidations.password,
   ],
-  
+
   // Get user by username
   getByUsername: [
     param('username')
       .trim()
       .isLength({ min: 3, max: 30 })
       .matches(/^[a-zA-Z0-9_]+$/)
-      .withMessage('Username must be 3-30 characters long and contain only letters, numbers, and underscores'),
+      .withMessage(
+        'Username must be 3-30 characters long and contain only letters, numbers, and underscores',
+      ),
   ],
 };
 
@@ -156,7 +180,9 @@ export const postValidations = {
     body('type')
       .optional()
       .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'MIXED'])
-      .withMessage('Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED'),
+      .withMessage(
+        'Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED',
+      ),
     body('images')
       .optional()
       .isArray({ max: 10 })
@@ -173,10 +199,7 @@ export const postValidations = {
       .optional()
       .isURL()
       .withMessage('Each video must be a valid URL'),
-    body('audioUrl')
-      .optional()
-      .isURL()
-      .withMessage('Audio URL must be valid'),
+    body('audioUrl').optional().isURL().withMessage('Audio URL must be valid'),
     body('parentId')
       .optional()
       .isLength({ min: 25, max: 25 })
@@ -196,7 +219,7 @@ export const postValidations = {
       .isBoolean()
       .withMessage('allowReplies must be a boolean'),
   ],
-  
+
   // Update post
   update: [
     commonValidations.id,
@@ -214,7 +237,7 @@ export const postValidations = {
       .isBoolean()
       .withMessage('allowReplies must be a boolean'),
   ],
-  
+
   // Get posts with filters
   getAll: [
     commonValidations.page,
@@ -222,7 +245,9 @@ export const postValidations = {
     query('type')
       .optional()
       .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'MIXED'])
-      .withMessage('Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED'),
+      .withMessage(
+        'Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED',
+      ),
     query('authorId')
       .optional()
       .isLength({ min: 25, max: 25 })
@@ -255,7 +280,7 @@ export const commentValidations = {
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Parent ID must be a valid CUID'),
   ],
-  
+
   update: [
     commonValidations.id,
     body('content')
@@ -277,7 +302,16 @@ export const messageValidations = {
       .withMessage('Message content must not exceed 5000 characters'),
     body('type')
       .optional()
-      .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'FILE', 'STICKER', 'GIF', 'LOCATION'])
+      .isIn([
+        'TEXT',
+        'IMAGE',
+        'VIDEO',
+        'AUDIO',
+        'FILE',
+        'STICKER',
+        'GIF',
+        'LOCATION',
+      ])
       .withMessage('Message type must be valid'),
     body('receiverId')
       .isLength({ min: 25, max: 25 })
@@ -288,24 +322,12 @@ export const messageValidations = {
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Reply to ID must be a valid CUID'),
-    body('imageUrl')
-      .optional()
-      .isURL()
-      .withMessage('Image URL must be valid'),
-    body('videoUrl')
-      .optional()
-      .isURL()
-      .withMessage('Video URL must be valid'),
-    body('audioUrl')
-      .optional()
-      .isURL()
-      .withMessage('Audio URL must be valid'),
-    body('fileUrl')
-      .optional()
-      .isURL()
-      .withMessage('File URL must be valid'),
+    body('imageUrl').optional().isURL().withMessage('Image URL must be valid'),
+    body('videoUrl').optional().isURL().withMessage('Video URL must be valid'),
+    body('audioUrl').optional().isURL().withMessage('Audio URL must be valid'),
+    body('fileUrl').optional().isURL().withMessage('File URL must be valid'),
   ],
-  
+
   getConversation: [
     param('userId')
       .isLength({ min: 25, max: 25 })
@@ -326,7 +348,7 @@ export const followValidations = {
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('User ID must be a valid CUID'),
   ],
-  
+
   unfollow: [
     param('userId')
       .isLength({ min: 25, max: 25 })
