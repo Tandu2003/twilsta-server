@@ -1,23 +1,24 @@
 # Twilsta Server
 
-A professional Express.js API server with TypeScript, featuring comprehensive logging, error handling, security middleware, and response helpers.
+A modern social media backend with complete user management, file storage, and email notifications.
 
-## Features
+## 🚀 Features
 
-### 🔧 Core Features
+### Core Features
 
-- **TypeScript** - Type-safe development
-- **Express.js** - Fast, unopinionated web framework
-- **Prisma** - Modern database toolkit
-- **CORS** - Cross-origin resource sharing
-- **Environment Configuration** - Secure environment variable management
+- **User Management**: Complete CRUD operations with authentication
+- **File Storage**: Avatar & cover image upload via Cloudinary
+- **Email System**: Welcome emails, notifications, password reset
+- **Follow System**: Follow/unfollow with email notifications
+- **Security**: JWT authentication, rate limiting, input validation
 
-### � Logging & Monitoring
+### Recent Enhancements
 
-- **Winston** - Professional logging with multiple transports
-- **Morgan** - HTTP request logging middleware
-- **Request/Response Logging** - Detailed request tracking
-- **Error Logging** - Comprehensive error tracking
+- ✅ **User Controller** with Cloudinary integration
+- ✅ **File Upload Middleware** with validation and error handling
+- ✅ **Email Service** with HTML templates and notifications
+- ✅ **Folder Structure** organized for Cloudinary assets
+- ✅ **Complete API functionality** with examples
 
 ### 🛡️ Security
 
@@ -118,36 +119,308 @@ npm start
 
 ## API Documentation
 
+### Base URL: `http://localhost:8081/api`
+
 ### Health Check
 
 ```
 GET /health
 ```
 
-### User API
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "OK",
+    "timestamp": "2025-06-20T02:35:34.123Z",
+    "uptime": 123.45,
+    "environment": "development",
+    "version": "1.0.0"
+  },
+  "message": "Server is healthy"
+}
+```
+
+### Authentication
+
+#### Register User
 
 ```
-GET    /api/users                     - Get all users (with pagination)
-GET    /api/users/:id                 - Get user by ID
-GET    /api/users/username/:username  - Get user by username
-GET    /api/users/:id/followers       - Get user's followers
-GET    /api/users/:id/following       - Get user's following
-POST   /api/auth/register             - Register new user
-PUT    /api/users/:id/profile         - Update user profile (protected)
-PUT    /api/users/:id/password        - Change password (protected)
-DELETE /api/users/:id                 - Delete user account (protected)
+POST /api/auth/register
 ```
 
-### Post API
+Request Body:
+
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "SecurePassword123!",
+  "displayName": "John Doe"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "id": "user_id_here",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "displayName": "John Doe",
+    "verified": false,
+    "createdAt": "2025-06-20T02:35:34.123Z"
+  }
+}
+```
+
+Note: Sends welcome email automatically.
+
+### User Management
+
+#### Get All Users
 
 ```
-GET    /api/posts           - Get all posts (with pagination & filters)
-GET    /api/posts/:id       - Get post by ID
-GET    /api/posts/:id/replies - Get post replies
-POST   /api/posts           - Create new post (protected)
-PUT    /api/posts/:id       - Update post (protected)
-DELETE /api/posts/:id       - Delete post (protected)
-POST   /api/posts/:id/like  - Like/Unlike post (protected)
+GET /api/users?page=1&limit=10&search=john
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Users retrieved successfully",
+  "data": [
+    {
+      "id": "user_id",
+      "username": "johndoe",
+      "displayName": "John Doe",
+      "bio": "Software Developer",
+      "avatar": "https://res.cloudinary.com/...",
+      "verified": true,
+      "followersCount": 150,
+      "followingCount": 89,
+      "postsCount": 42,
+      "createdAt": "2025-06-20T02:35:34.123Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+#### Get User by ID
+
+```
+GET /api/users/:id
+```
+
+#### Get User by Username
+
+```
+GET /api/users/username/:username
+```
+
+#### Update User Profile
+
+```
+PUT /api/users/:id/profile
+```
+
+Request Body:
+
+```json
+{
+  "displayName": "John Doe Updated",
+  "bio": "Senior Software Developer at ABC Company",
+  "website": "https://johndoe.dev",
+  "location": "San Francisco, CA"
+}
+```
+
+Note: Requires authentication.
+
+### File Upload (Cloudinary Integration)
+
+#### Upload Avatar
+
+```
+POST /api/users/:id/avatar
+Content-Type: multipart/form-data
+```
+
+Form Data:
+
+- `avatar`: Image file (JPG, PNG, GIF, WebP, max 5MB)
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Avatar uploaded successfully",
+  "data": {
+    "avatar": "https://res.cloudinary.com/twilsta/user/avatar/user_id_timestamp.jpg"
+  }
+}
+```
+
+#### Remove Avatar
+
+```
+DELETE /api/users/:id/avatar
+```
+
+#### Upload Cover Image
+
+```
+POST /api/users/:id/cover
+Content-Type: multipart/form-data
+```
+
+Form Data:
+
+- `coverImage`: Image file (JPG, PNG, GIF, WebP, max 10MB)
+
+#### Remove Cover Image
+
+```
+DELETE /api/users/:id/cover
+```
+
+### Follow System
+
+#### Follow User
+
+```
+POST /api/users/:id/follow
+```
+
+Note: Sends email notification to followed user.
+
+#### Unfollow User
+
+```
+DELETE /api/users/:id/follow
+```
+
+#### Get User Followers
+
+```
+GET /api/users/:id/followers?page=1&limit=10
+```
+
+#### Get User Following
+
+```
+GET /api/users/:id/following?page=1&limit=10
+```
+
+### Account Management
+
+#### Change Password
+
+```
+PUT /api/users/:id/password
+```
+
+Request Body:
+
+```json
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewPassword123!"
+}
+```
+
+Note: Sends confirmation email.
+
+#### Deactivate Account
+
+```
+POST /api/users/:id/deactivate
+```
+
+Request Body:
+
+```json
+{
+  "password": "UserPassword123!"
+}
+```
+
+Note: Sends deactivation notification email.
+
+#### Delete Account
+
+```
+DELETE /api/users/:id
+```
+
+Note: Soft delete with Cloudinary asset cleanup.
+
+### Post Management
+
+#### Get All Posts
+
+```
+GET /api/posts?page=1&limit=10&type=TEXT&authorId=user_id
+```
+
+#### Get Post by ID
+
+```
+GET /api/posts/:id
+```
+
+#### Get Post Replies
+
+```
+GET /api/posts/:id/replies?page=1&limit=10
+```
+
+#### Create Post
+
+```
+POST /api/posts
+```
+
+Request Body:
+
+```json
+{
+  "content": "This is my new post!",
+  "type": "TEXT"
+}
+```
+
+Note: Requires authentication.
+
+#### Update Post
+
+```
+PUT /api/posts/:id
+```
+
+#### Delete Post
+
+```
+DELETE /api/posts/:id
+```
+
+#### Like/Unlike Post
+
+```
+POST /api/posts/:id/like
 ```
 
 ### Query Parameters
@@ -156,13 +429,78 @@ POST   /api/posts/:id/like  - Like/Unlike post (protected)
 
 - `page`: Page number (default: 1)
 - `limit`: Items per page (default: 10, max: 100)
-- `search`: Search query for users
+
+#### User Search
+
+- `search`: Search in username, displayName (case-insensitive)
+- `verified`: Filter by verification status (true/false)
 
 #### Post Filters
 
 - `type`: Post type (TEXT, IMAGE, VIDEO, AUDIO, MIXED)
 - `authorId`: Filter by author ID
 - `parentId`: Filter by parent post ID (for replies)
+
+### Error Responses
+
+All endpoints return standardized error responses:
+
+```json
+{
+  "success": false,
+  "message": "Error description",
+  "meta": {
+    "timestamp": "2025-06-20T02:35:34.123Z"
+  }
+}
+```
+
+Common HTTP Status Codes:
+
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request
+- `401`: Unauthorized
+- `404`: Not Found
+- `422`: Validation Error
+- `429`: Too Many Requests
+- `500`: Internal Server Error
+
+### File Upload Specifications
+
+#### Supported File Types
+
+- Images: JPG, JPEG, PNG, GIF, WebP
+
+#### Size Limits
+
+- Avatar: Maximum 5MB
+- Cover Image: Maximum 10MB
+
+#### Cloudinary Folder Structure
+
+```
+/twilsta/
+├── user/avatar/{userId}_{timestamp}
+├── user/cover/{userId}_{timestamp}
+├── post/media/{postId}_{timestamp}
+└── message/attachments/{messageId}_{timestamp}
+```
+
+### Email Notifications
+
+Automatic email notifications are sent for:
+
+- ✅ **Welcome Email**: User registration
+- ✅ **Follow Notification**: When someone follows you
+- ✅ **Password Change**: Password update confirmation
+- ✅ **Account Deactivation**: Account deactivation notice
+
+### Rate Limiting
+
+- **General API**: 100 requests per 15 minutes per IP
+- **Authentication**: 5 requests per 15 minutes per IP
+- **File Upload**: Special handling with size validation
 
 ````
 

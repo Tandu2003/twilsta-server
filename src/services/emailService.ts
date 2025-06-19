@@ -57,6 +57,70 @@ class EmailService {
     }
   }
 
+  /**
+   * Send welcome email to new user
+   */
+  async sendWelcomeEmail(email: string, username: string): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .btn { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎉 Welcome to Twilsta!</h1>
+            <p>Your social media journey starts here</p>
+          </div>
+          <div class="content">
+            <h2>Hello ${username}! 👋</h2>
+            <p>We're thrilled to have you join the Twilsta community! Your account has been successfully created and you're ready to start connecting with friends and sharing your thoughts.</p>
+
+            <h3>What you can do now:</h3>
+            <ul>
+              <li>✨ Complete your profile with a bio and profile picture</li>
+              <li>🔍 Discover and follow interesting people</li>
+              <li>📝 Share your first post with the community</li>
+              <li>💬 Engage with posts through likes and comments</li>
+            </ul>
+
+            <div style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL}" class="btn">Start Exploring</a>
+            </div>
+
+            <p>If you have any questions or need help getting started, don't hesitate to reach out to our support team.</p>
+
+            <p>Happy posting! 🚀</p>
+            <p><strong>The Twilsta Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>This email was sent to ${email}. If you didn't create this account, please ignore this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const options: EmailOptions = {
+      to: email,
+      subject: '🎉 Welcome to Twilsta - Your account is ready!',
+      html,
+    };
+
+    return this.sendEmail(options);
+  }
+
   async sendVerificationEmail(
     email: string,
     token: string,
@@ -276,6 +340,229 @@ class EmailService {
     return this.sendEmail({
       to: email,
       subject: 'Password Changed Successfully - Twilsta',
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send follow notification email
+   */
+  async sendFollowNotification(
+    email: string,
+    username: string,
+    followerUsername: string,
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>New Follower - Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>👥 New Follower!</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${username}!</h2>
+            <p><strong>@${followerUsername}</strong> started following you on Twilsta!</p>
+
+            <div style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL}/profile/${followerUsername}" class="button">View Profile</a>
+            </div>
+
+            <p>Connect with your new follower and grow your community!</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Twilsta. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      New Follower - Twilsta
+
+      Hi ${username}!
+
+      @${followerUsername} started following you on Twilsta!
+
+      Visit their profile: ${process.env.FRONTEND_URL}/profile/${followerUsername}
+
+      © 2025 Twilsta. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `${followerUsername} started following you on Twilsta`,
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send password change notification email
+   */
+  async sendPasswordChangeNotification(
+    email: string,
+    username: string,
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Password Changed - Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Password Changed</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${username}!</h2>
+            <p>Your password has been successfully changed for your Twilsta account.</p>
+
+            <div class="warning">
+              <strong>⚠️ Security Notice:</strong> If you didn't make this change, please contact our support team immediately.
+            </div>
+
+            <p><strong>Change Details:</strong></p>
+            <ul>
+              <li>Date: ${new Date().toLocaleString()}</li>
+              <li>Account: ${email}</li>
+            </ul>
+
+            <p>For your security, you may be logged out of all devices and will need to log in again.</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Twilsta. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Password Changed - Twilsta
+
+      Hi ${username}!
+
+      Your password has been successfully changed for your Twilsta account.
+
+      Change Details:
+      - Date: ${new Date().toLocaleString()}
+      - Account: ${email}
+
+      If you didn't make this change, please contact our support team immediately.
+
+      © 2025 Twilsta. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Password Changed Successfully - Twilsta',
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send account deactivation notification email
+   */
+  async sendAccountDeactivationNotification(
+    email: string,
+    username: string,
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Account Deactivated - Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>👋 Account Deactivated</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${username}!</h2>
+            <p>Your Twilsta account has been successfully deactivated as requested.</p>
+
+            <p><strong>What happens now?</strong></p>
+            <ul>
+              <li>Your profile is no longer visible to other users</li>
+              <li>Your posts and content remain but are private</li>
+              <li>You can reactivate your account anytime by logging in</li>
+            </ul>
+
+            <p>We're sad to see you go! If you change your mind, you can always come back.</p>
+
+            <p><strong>Deactivation Details:</strong></p>
+            <ul>
+              <li>Date: ${new Date().toLocaleString()}</li>
+              <li>Account: ${email}</li>
+            </ul>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Twilsta. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Account Deactivated - Twilsta
+
+      Hi ${username}!
+
+      Your Twilsta account has been successfully deactivated as requested.
+
+      What happens now?
+      - Your profile is no longer visible to other users
+      - Your posts and content remain but are private
+      - You can reactivate your account anytime by logging in
+
+      Deactivation Details:
+      - Date: ${new Date().toLocaleString()}
+      - Account: ${email}
+
+      We're sad to see you go! If you change your mind, you can always come back.
+
+      © 2025 Twilsta. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Account Deactivated - Twilsta',
       html,
       text,
     });

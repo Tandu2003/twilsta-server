@@ -8,6 +8,12 @@ import {
   crudValidations,
 } from '../middleware/validations';
 import { apiLimiter, authLimiter } from '../middleware/security';
+import {
+  uploadAvatar,
+  uploadCoverImage,
+  validateUploadedFiles,
+  handleUploadError,
+} from '../middleware/upload';
 import authRoutes from './auth';
 
 const router = Router();
@@ -51,6 +57,20 @@ router.get(
   UserController.getFollowing,
 );
 
+// Follow/Unfollow routes
+router.post(
+  '/users/:id/follow',
+  crudValidations.getById,
+  handleValidationErrors,
+  UserController.followUser,
+);
+router.delete(
+  '/users/:id/follow',
+  crudValidations.getById,
+  handleValidationErrors,
+  UserController.unfollowUser,
+);
+
 // Auth routes with stricter rate limiting
 router.post(
   '/auth/register',
@@ -67,12 +87,60 @@ router.put(
   handleValidationErrors,
   UserController.updateProfile,
 );
+
+// Avatar upload route
+router.post(
+  '/users/:id/avatar',
+  crudValidations.getById,
+  uploadAvatar,
+  validateUploadedFiles,
+  handleValidationErrors,
+  UserController.uploadAvatar,
+  handleUploadError,
+);
+
+// Remove avatar route
+router.delete(
+  '/users/:id/avatar',
+  crudValidations.getById,
+  handleValidationErrors,
+  UserController.removeAvatar,
+);
+
+// Cover image upload route
+router.post(
+  '/users/:id/cover',
+  crudValidations.getById,
+  uploadCoverImage,
+  validateUploadedFiles,
+  handleValidationErrors,
+  UserController.uploadCoverImage,
+  handleUploadError,
+);
+
+// Remove cover image route
+router.delete(
+  '/users/:id/cover',
+  crudValidations.getById,
+  handleValidationErrors,
+  UserController.removeCoverImage,
+);
+
 router.put(
   '/users/:id/password',
   crudValidations.getById.concat(userValidations.changePassword),
   handleValidationErrors,
   UserController.changePassword,
 );
+
+// Deactivate account route
+router.post(
+  '/users/:id/deactivate',
+  crudValidations.getById,
+  handleValidationErrors,
+  UserController.deactivateAccount,
+);
+
 router.delete(
   '/users/:id',
   crudValidations.deleteById,
