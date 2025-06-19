@@ -181,7 +181,8 @@ export const uploadMessageAttachment = multer({
       );
     }
 
-    cb(null, true);  },
+    cb(null, true);
+  },
 }).array('attachments', 5);
 
 /**

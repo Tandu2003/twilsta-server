@@ -511,18 +511,21 @@ POST /api/comments/media
 ```
 
 Form Data:
+
 - `content`: Comment text (optional if media provided)
 - `postId`: Target post ID
 - `parentId`: Parent comment ID (optional)
 - `media`: Files (images, videos, audio, documents) - max 5 files
 
 Supported media types:
+
 - **Images**: JPG, PNG, WebP (max 5MB each)
-- **Videos**: MP4, AVI, MOV, WebM (max 50MB each)  
+- **Videos**: MP4, AVI, MOV, WebM (max 50MB each)
 - **Audio**: MP3, WAV, OGG, AAC, M4A (max 10MB each)
 - **Documents**: PDF, DOC, DOCX, TXT (max 10MB each)
 
 Cloudinary folder structure:
+
 ```
 comments/
 ├── images/
@@ -568,6 +571,7 @@ POST /api/comments/:id/media
 ```
 
 Form Data:
+
 - `media`: Media files to add
 
 #### Remove Media from Comment
@@ -580,7 +584,10 @@ Request Body:
 
 ```json
 {
-  "mediaUrls": ["https://cloudinary.../file1.jpg", "https://cloudinary.../file2.mp4"],
+  "mediaUrls": [
+    "https://cloudinary.../file1.jpg",
+    "https://cloudinary.../file2.mp4"
+  ],
   "mediaType": "image" // or "video", "audio", "document"
 }
 ```

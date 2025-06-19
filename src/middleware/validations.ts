@@ -327,9 +327,7 @@ export const commentValidations = {
     body('mediaUrls')
       .isArray({ min: 1 })
       .withMessage('At least one media URL must be provided'),
-    body('mediaUrls.*')
-      .isURL()
-      .withMessage('Each media URL must be valid'),
+    body('mediaUrls.*').isURL().withMessage('Each media URL must be valid'),
     body('mediaType')
       .isIn(['image', 'video', 'audio', 'document'])
       .withMessage('Media type must be one of: image, video, audio, document'),
