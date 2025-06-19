@@ -278,9 +278,10 @@ export const postValidations = {
 export const commentValidations = {
   create: [
     body('content')
+      .optional()
       .trim()
-      .isLength({ min: 1, max: 1000 })
-      .withMessage('Comment content must be between 1 and 1000 characters'),
+      .isLength({ max: 1000 })
+      .withMessage('Comment content must not exceed 1000 characters'),
     body('postId')
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
@@ -298,6 +299,40 @@ export const commentValidations = {
       .trim()
       .isLength({ min: 1, max: 1000 })
       .withMessage('Comment content must be between 1 and 1000 characters'),
+  ],
+
+  // Get comments with pagination
+  getByPost: [
+    param('postId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Post ID must be a valid CUID'),
+    commonValidations.page,
+    commonValidations.limit,
+  ],
+
+  // Get replies for a comment
+  getReplies: [
+    param('commentId')
+      .isLength({ min: 25, max: 25 })
+      .matches(/^c[a-z0-9]{24}$/)
+      .withMessage('Comment ID must be a valid CUID'),
+    commonValidations.page,
+    commonValidations.limit,
+  ],
+
+  // Remove media from comment
+  removeMedia: [
+    commonValidations.id,
+    body('mediaUrls')
+      .isArray({ min: 1 })
+      .withMessage('At least one media URL must be provided'),
+    body('mediaUrls.*')
+      .isURL()
+      .withMessage('Each media URL must be valid'),
+    body('mediaType')
+      .isIn(['image', 'video', 'audio', 'document'])
+      .withMessage('Media type must be one of: image, video, audio, document'),
   ],
 };
 

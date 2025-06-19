@@ -423,6 +423,177 @@ DELETE /api/posts/:id
 POST /api/posts/:id/like
 ```
 
+### Comment Management
+
+#### Get Comments for Post
+
+```
+GET /api/posts/:postId/comments?page=1&limit=10
+```
+
+Response includes nested replies (first 3 replies shown):
+
+```json
+{
+  "success": true,
+  "data": {
+    "comments": [
+      {
+        "id": "comment_id",
+        "content": "Great post!",
+        "images": ["https://cloudinary.../image1.jpg"],
+        "videos": [],
+        "audioUrl": null,
+        "documents": [],
+        "depth": 0,
+        "likesCount": 5,
+        "repliesCount": 2,
+        "createdAt": "2025-06-20T02:35:34.123Z",
+        "user": {
+          "id": "user_id",
+          "username": "johndoe",
+          "displayName": "John Doe",
+          "avatar": "https://cloudinary.../avatar.jpg",
+          "verified": false
+        },
+        "replies": [
+          {
+            "id": "reply_id",
+            "content": "Thanks!",
+            "depth": 1,
+            "user": { "..." }
+          }
+        ],
+        "_count": {
+          "likes": 5,
+          "replies": 2
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "totalComments": 15,
+      "totalPages": 2,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    }
+  }
+}
+```
+
+#### Get Replies for Comment
+
+```
+GET /api/comments/:commentId/replies?page=1&limit=10
+```
+
+#### Create Comment
+
+```
+POST /api/comments
+```
+
+Request Body:
+
+```json
+{
+  "content": "This is my comment",
+  "postId": "post_id_here",
+  "parentId": "parent_comment_id" // Optional for replies
+}
+```
+
+#### Create Comment with Media
+
+```
+POST /api/comments/media
+```
+
+Form Data:
+- `content`: Comment text (optional if media provided)
+- `postId`: Target post ID
+- `parentId`: Parent comment ID (optional)
+- `media`: Files (images, videos, audio, documents) - max 5 files
+
+Supported media types:
+- **Images**: JPG, PNG, WebP (max 5MB each)
+- **Videos**: MP4, AVI, MOV, WebM (max 50MB each)  
+- **Audio**: MP3, WAV, OGG, AAC, M4A (max 10MB each)
+- **Documents**: PDF, DOC, DOCX, TXT (max 10MB each)
+
+Cloudinary folder structure:
+```
+comments/
+├── images/
+├── videos/
+├── audio/
+└── documents/
+```
+
+#### Update Comment
+
+```
+PUT /api/comments/:id
+```
+
+Request Body:
+
+```json
+{
+  "content": "Updated comment content"
+}
+```
+
+#### Delete Comment
+
+```
+DELETE /api/comments/:id
+```
+
+- Automatically deletes all media files from Cloudinary
+- Cascades delete all replies
+- Updates parent comment reply count
+
+#### Like/Unlike Comment
+
+```
+POST /api/comments/:id/like
+```
+
+#### Add Media to Comment
+
+```
+POST /api/comments/:id/media
+```
+
+Form Data:
+- `media`: Media files to add
+
+#### Remove Media from Comment
+
+```
+DELETE /api/comments/:id/media
+```
+
+Request Body:
+
+```json
+{
+  "mediaUrls": ["https://cloudinary.../file1.jpg", "https://cloudinary.../file2.mp4"],
+  "mediaType": "image" // or "video", "audio", "document"
+}
+```
+
+### Email Notifications
+
+Comments trigger automatic email notifications:
+
+1. **Comment on Post**: Notifies post author when someone comments
+2. **Reply to Comment**: Notifies original commenter when someone replies
+3. **HTML Email Templates**: Beautiful, responsive email designs
+4. **Smart Content**: Truncated content for readability
+
 ### Query Parameters
 
 #### Pagination

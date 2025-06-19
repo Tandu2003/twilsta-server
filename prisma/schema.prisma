@@ -55,10 +55,11 @@ model User {
   following Follow[] @relation("UserFollowing")
 
   // Content
-  posts    Post[]
-  likes    Like[]
-  comments Comment[]
-  reposts  Repost[]
+  posts        Post[]
+  likes        Like[]
+  commentLikes CommentLike[]
+  comments     Comment[]
+  reposts      Repost[]
 
   // Messages
   sentMessages     Message[] @relation("MessageSender")
@@ -174,6 +175,22 @@ model Like {
   @@map("likes")
 }
 
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([userId])
+  @@index([commentId])
+  @@index([createdAt])
+  @@map("comment_likes")
+}
+
 model Comment {
   id       String  @id @default(cuid())
   content  String
@@ -181,10 +198,19 @@ model Comment {
   postId   String
   parentId String? // For nested comments
 
+  // Media attachments
+  images    String[] @default([]) // Array of image URLs
+  videos    String[] @default([]) // Array of video URLs
+  audioUrl  String? // Single audio URL
+  documents String[] @default([]) // Array of document URLs
+
   // Additional metadata for nested comments
   depth        Int     @default(0) // Depth level (0 = root comment)
   path         String? // Materialized path for efficient queries
   repliesCount Int     @default(0) // Count of direct replies
+
+  // Interaction stats
+  likesCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -193,6 +219,9 @@ model Comment {
   post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies Comment[] @relation("CommentReplies")
+
+  // Comment likes (assuming you have CommentLike model or will create one)
+  likes CommentLike[]
 
   @@index([userId])
   @@index([postId])

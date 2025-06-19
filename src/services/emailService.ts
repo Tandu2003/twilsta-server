@@ -563,6 +563,171 @@ class EmailService {
     return this.sendEmail({
       to: email,
       subject: 'Account Deactivated - Twilsta',
+      html,      text,
+    });
+  }
+
+  /**
+   * Send comment notification to post author
+   */
+  async sendCommentNotification(
+    email: string,
+    data: {
+      postAuthor: string;
+      commenter: string;
+      commentContent: string;
+      postContent: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>New Comment on Your Post - Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .comment-box { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; border-radius: 5px; }
+          .post-box { background: #e9ecef; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .username { font-weight: bold; color: #667eea; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💬 New Comment!</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${data.postAuthor}!</h2>
+            <p><span class="username">${data.commenter}</span> commented on your post:</p>
+            
+            <div class="post-box">
+              <strong>Your Post:</strong><br>
+              "${data.postContent.length > 100 ? data.postContent.substring(0, 100) + '...' : data.postContent}"
+            </div>
+            
+            <div class="comment-box">
+              <strong>Comment from ${data.commenter}:</strong><br>
+              "${data.commentContent}"
+            </div>
+            
+            <p>Check it out on Twilsta to reply and engage with your community!</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 Twilsta. All rights reserved.</p>
+            <p>You received this email because someone commented on your post.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      New Comment on Your Post - Twilsta
+
+      Hi ${data.postAuthor}!
+
+      ${data.commenter} commented on your post:
+
+      Your Post: "${data.postContent.length > 100 ? data.postContent.substring(0, 100) + '...' : data.postContent}"
+
+      Comment: "${data.commentContent}"
+
+      Check it out on Twilsta to reply and engage with your community!
+
+      © 2025 Twilsta. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `New comment from ${data.commenter} - Twilsta`,
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send reply notification to comment author
+   */
+  async sendReplyNotification(
+    email: string,
+    data: {
+      originalCommenter: string;
+      replier: string;
+      replyContent: string;
+      originalComment: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>New Reply to Your Comment - Twilsta</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }
+          .reply-box { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #4facfe; border-radius: 5px; }
+          .comment-box { background: #e9ecef; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .username { font-weight: bold; color: #4facfe; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>↩️ New Reply!</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${data.originalCommenter}!</h2>
+            <p><span class="username">${data.replier}</span> replied to your comment:</p>
+            
+            <div class="comment-box">
+              <strong>Your Comment:</strong><br>
+              "${data.originalComment.length > 100 ? data.originalComment.substring(0, 100) + '...' : data.originalComment}"
+            </div>
+            
+            <div class="reply-box">
+              <strong>Reply from ${data.replier}:</strong><br>
+              "${data.replyContent}"
+            </div>
+            
+            <p>Join the conversation on Twilsta and continue the discussion!</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 Twilsta. All rights reserved.</p>
+            <p>You received this email because someone replied to your comment.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      New Reply to Your Comment - Twilsta
+
+      Hi ${data.originalCommenter}!
+
+      ${data.replier} replied to your comment:
+
+      Your Comment: "${data.originalComment.length > 100 ? data.originalComment.substring(0, 100) + '...' : data.originalComment}"
+
+      Reply: "${data.replyContent}"
+
+      Join the conversation on Twilsta and continue the discussion!
+
+      © 2025 Twilsta. All rights reserved.
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: `${data.replier} replied to your comment - Twilsta`,
       html,
       text,
     });

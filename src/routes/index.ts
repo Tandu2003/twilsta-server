@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/userController';
 import { PostController } from '../controllers/postController';
+import { CommentController } from '../controllers/commentController';
 import { handleValidationErrors } from '../middleware/errorHandler';
 import {
   userValidations,
   postValidations,
+  commentValidations,
   crudValidations,
 } from '../middleware/validations';
 import { apiLimiter, authLimiter } from '../middleware/security';
@@ -12,6 +14,7 @@ import {
   uploadAvatar,
   uploadCoverImage,
   uploadPostMedia,
+  uploadCommentMedia,
   validateUploadedFiles,
   handleUploadError,
 } from '../middleware/upload';
@@ -212,6 +215,79 @@ router.delete(
   crudValidations.getById.concat(postValidations.removeMedia),
   handleValidationErrors,
   PostController.removeMedia,
+);
+
+// Comment routes
+// Public routes
+router.get(
+  '/posts/:postId/comments',
+  commentValidations.getByPost,
+  handleValidationErrors,
+  CommentController.getCommentsByPost,
+);
+
+router.get(
+  '/comments/:commentId/replies',
+  commentValidations.getReplies,
+  handleValidationErrors,
+  CommentController.getReplies,
+);
+
+// Protected routes (require authentication - to be implemented)
+router.post(
+  '/comments',
+  commentValidations.create,
+  handleValidationErrors,
+  CommentController.create,
+);
+
+router.post(
+  '/comments/media',
+  uploadCommentMedia,
+  validateUploadedFiles,
+  commentValidations.create,
+  handleValidationErrors,
+  CommentController.create,
+  handleUploadError,
+);
+
+router.put(
+  '/comments/:id',
+  commentValidations.update,
+  handleValidationErrors,
+  CommentController.update,
+);
+
+router.delete(
+  '/comments/:id',
+  crudValidations.deleteById,
+  handleValidationErrors,
+  CommentController.delete,
+);
+
+router.post(
+  '/comments/:id/like',
+  crudValidations.getById,
+  handleValidationErrors,
+  CommentController.toggleLike,
+);
+
+// Comment media management routes
+router.post(
+  '/comments/:id/media',
+  crudValidations.getById,
+  uploadCommentMedia,
+  validateUploadedFiles,
+  handleValidationErrors,
+  CommentController.addMedia,
+  handleUploadError,
+);
+
+router.delete(
+  '/comments/:id/media',
+  commentValidations.removeMedia,
+  handleValidationErrors,
+  CommentController.removeMedia,
 );
 
 export default router;

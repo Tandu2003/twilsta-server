@@ -181,9 +181,52 @@ export const uploadMessageAttachment = multer({
       );
     }
 
+    cb(null, true);  },
+}).array('attachments', 5);
+
+/**
+ * Comment media upload middleware (supports images, videos, audio, documents)
+ */
+export const uploadCommentMedia = multer({
+  storage,
+  limits: {
+    fileSize: MAX_VIDEO_SIZE, // Use largest limit for mixed media
+    files: 5, // Max 5 files per comment
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      ...allowedImageTypes,
+      ...allowedVideoTypes,
+      ...allowedDocumentTypes,
+      'audio/mp3',
+      'audio/wav',
+      'audio/ogg',
+      'audio/aac',
+      'audio/m4a',
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      logger.warn(`Invalid comment media file type uploaded: ${file.mimetype}`);
+      return cb(
+        new Error(
+          `Invalid file type. Allowed types: images, videos, audio files, and documents`,
+        ),
+      );
+    }
+
+    // Check specific size limits based on file type
+    let maxSize = MAX_IMAGE_SIZE;
+    if (file.mimetype.startsWith('video/')) {
+      maxSize = MAX_VIDEO_SIZE;
+    } else if (file.mimetype.startsWith('audio/')) {
+      maxSize = MAX_DOCUMENT_SIZE; // 10MB for audio
+    } else if (allowedDocumentTypes.includes(file.mimetype)) {
+      maxSize = MAX_DOCUMENT_SIZE; // 10MB for documents
+    }
+
     cb(null, true);
   },
-}).array('attachments', 5);
+}).array('media', 5); // Accept up to 5 files with field name 'media'
 
 /**
  * Generic file upload error handler
