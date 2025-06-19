@@ -12,3 +12,424 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id          String  @id @default(cuid())
+  username    String  @unique
+  email       String  @unique
+  displayName String?
+  bio         String?
+  avatar      String?
+  coverImage  String?
+  website     String?
+  location    String?
+
+  // Authentication
+  password  String
+  verified  Boolean @default(false)
+  isPrivate Boolean @default(false)
+
+  // Social stats
+  followersCount Int @default(0)
+  followingCount Int @default(0)
+  postsCount     Int @default(0)
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastActiveAt DateTime @default(now())
+
+  // Social relationships
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+
+  // Content
+  posts    Post[]
+  likes    Like[]
+  comments Comment[]
+  reposts  Repost[]
+
+  // Messages
+  sentMessages     Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
+
+  // Conversations
+  conversationParticipants ConversationParticipant[]
+  conversationMessages     ConversationMessage[]     @relation("ConversationMessageSender")
+  messageReactions         MessageReaction[]
+  messageReadReceipts      MessageReadReceipt[]
+
+  // Notifications
+  notifications Notification[]
+
+  // Blocks and reports
+  blockedUsers Block[]  @relation("BlockedBy")
+  blockedBy    Block[]  @relation("BlockedUser")
+  reports      Report[]
+
+  @@map("users")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model Post {
+  id      String   @id @default(cuid())
+  content String? // Optional for media-only posts
+  type    PostType @default(TEXT)
+
+  // Media content
+  images   String[]
+  videos   String[]
+  audioUrl String? // For voice posts
+
+  // Media metadata
+  mediaDuration Int? // For video/audio duration in seconds
+  mediaSize     Int? // File size in bytes
+  thumbnailUrl  String? // Video thumbnail
+
+  authorId  String
+  parentId  String? // For reply threads
+  replyToId String? // Direct reply to specific post
+
+  // Engagement stats
+  likesCount    Int @default(0)
+  commentsCount Int @default(0)
+  repostsCount  Int @default(0)
+  viewsCount    Int @default(0)
+
+  // Post settings
+  isPublic     Boolean @default(true)
+  allowReplies Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  author        User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Post?  @relation("PostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Post[] @relation("PostReplies")
+  replyTo       Post?  @relation("DirectReplies", fields: [replyToId], references: [id], onDelete: Cascade)
+  directReplies Post[] @relation("DirectReplies")
+
+  likes    Like[]
+  comments Comment[]
+  reposts  Repost[]
+  reports  Report[]
+
+  @@map("posts")
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Comment {
+  id       String  @id @default(cuid())
+  content  String
+  userId   String
+  postId   String
+  parentId String? // For nested comments
+
+  // Additional metadata for nested comments
+  depth        Int     @default(0) // Depth level (0 = root comment)
+  path         String? // Materialized path for efficient queries
+  repliesCount Int     @default(0) // Count of direct replies
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Repost {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  comment   String? // Optional comment when reposting
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("reposts")
+}
+
+model Message {
+  id      String      @id @default(cuid())
+  content String? // Optional for media messages
+  type    MessageType @default(TEXT)
+
+  // Media content
+  imageUrl String?
+  videoUrl String?
+  audioUrl String? // Voice messages
+  fileUrl  String? // File attachments
+
+  // Media metadata
+  fileName      String? // Original filename
+  fileSize      Int? // File size in bytes
+  fileMimeType  String? // MIME type
+  mediaDuration Int? // Audio/video duration in seconds
+  thumbnailUrl  String? // Video/image thumbnail
+
+  // Message metadata
+  isEdited Boolean   @default(false)
+  editedAt DateTime?
+
+  // Reply functionality
+  replyToId String? // Reply to specific message
+
+  senderId   String
+  receiverId String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User      @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  replyTo  Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: Cascade)
+  replies  Message[] @relation("MessageReplies")
+
+  @@map("messages")
+}
+
+model Conversation {
+  id          String           @id @default(cuid())
+  name        String? // Group chat name
+  type        ConversationType @default(DIRECT)
+  isGroup     Boolean          @default(false)
+  avatar      String? // Group chat avatar
+  description String? // Group description
+
+  // Settings
+  isArchived Boolean   @default(false)
+  isMuted    Boolean   @default(false)
+  muteUntil  DateTime?
+
+  // Group settings
+  onlyAdminsCanMessage Boolean @default(false)
+  allowMemberAdd       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Last message info for quick display
+  lastMessageId      String?
+  lastMessageContent String?
+  lastMessageAt      DateTime?
+  lastMessageSender  String?
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     ConversationMessage[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String          @id @default(cuid())
+  conversationId String
+  userId         String
+  role           ParticipantRole @default(MEMBER)
+
+  // Participant settings
+  isActive   Boolean   @default(true)
+  joinedAt   DateTime  @default(now())
+  leftAt     DateTime?
+  lastReadAt DateTime  @default(now())
+
+  // Notification settings
+  isMuted   Boolean   @default(false)
+  muteUntil DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model ConversationMessage {
+  id             String      @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String?
+  type           MessageType @default(TEXT)
+
+  // Media content
+  imageUrl String?
+  videoUrl String?
+  audioUrl String?
+  fileUrl  String?
+
+  // Media metadata
+  fileName      String?
+  fileSize      Int?
+  fileMimeType  String?
+  mediaDuration Int?
+  thumbnailUrl  String?
+
+  // Message features
+  isEdited  Boolean   @default(false)
+  editedAt  DateTime?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  // Reply functionality
+  replyToId String?
+
+  // Reactions
+  reactions    MessageReaction[]
+  readReceipts MessageReadReceipt[]
+
+  createdAt DateTime @default(now())
+
+  conversation Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                  @relation("ConversationMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      ConversationMessage?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: Cascade)
+  replies      ConversationMessage[] @relation("MessageReplies")
+
+  @@map("conversation_messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String // Unicode emoji
+  createdAt DateTime @default(now())
+
+  message ConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("message_reactions")
+}
+
+model MessageReadReceipt {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message ConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("message_read_receipts")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json? // Additional data for the notification
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlockedBy", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedUser", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@map("blocks")
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  postId      String?
+  reason      String
+  description String?
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+
+  reporter User  @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post     Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  REPOST
+  MENTION
+  MESSAGE
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  MIXED // Posts with multiple media types
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO // Voice messages
+  FILE // Document/file attachments
+  STICKER
+  GIF
+  LOCATION
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum ParticipantRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
