@@ -236,9 +236,7 @@ export class MessageController {
             }
             // Generate thumbnail for video
             if (result.public_id) {
-              thumbnailUrl = cloudinaryService.generateVideoThumbnail(
-                result.public_id,
-              );
+              thumbnailUrl = cloudinaryService.generateVideoThumbnail(result.public_id);
             }
           } else if (file.mimetype.startsWith('audio/')) {
             messageType = 'AUDIO';
@@ -445,10 +443,7 @@ export class MessageController {
       // Broadcast message update via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastMessageUpdate(
-          message.conversationId,
-          updatedMessage,
-        );
+        realtimeService.broadcastMessageUpdate(message.conversationId, updatedMessage);
       }
 
       logger.info(`Message edited: ${messageId} by user: ${userId}`);
@@ -523,11 +518,7 @@ export class MessageController {
       // Broadcast message deletion via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastMessageDelete(
-          message.conversationId,
-          messageId,
-          userId,
-        );
+        realtimeService.broadcastMessageDelete(message.conversationId, messageId, userId);
       }
 
       logger.info(`Message deleted: ${messageId} by user: ${userId}`);
@@ -541,10 +532,7 @@ export class MessageController {
   /**
    * React to a message (emoji reactions)
    */
-  static reactToMessage = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static reactToMessage = async (req: Request, res: Response): Promise<void> => {
     try {
       const { messageId } = req.params;
       const { emoji } = req.body;
@@ -628,11 +616,7 @@ export class MessageController {
       // Broadcast reaction via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastMessageReaction(
-          message.conversationId,
-          messageId,
-          reactionData,
-        );
+        realtimeService.broadcastMessageReaction(message.conversationId, messageId, reactionData);
       }
 
       logger.info(
@@ -748,17 +732,11 @@ export class MessageController {
         // Broadcast read receipt via Socket.IO
         const realtimeService = getRealtimeService();
         if (realtimeService) {
-          realtimeService.broadcastMessageRead(
-            conversationId,
-            userId,
-            targetMessage.id,
-          );
+          realtimeService.broadcastMessageRead(conversationId, userId, targetMessage.id);
         }
       }
 
-      logger.info(
-        `Messages marked as read in conversation: ${conversationId} by user: ${userId}`,
-      );
+      logger.info(`Messages marked as read in conversation: ${conversationId} by user: ${userId}`);
       success(res, null, 'Messages marked as read');
     } catch (error) {
       logger.error('Error marking messages as read:', error);

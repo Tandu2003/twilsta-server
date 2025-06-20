@@ -55,9 +55,7 @@ class JWTService {
     ipAddress?: string,
   ): Promise<string> {
     const token = uuidv4();
-    const expiresAt = new Date(
-      Date.now() + this.parseExpiry(this.refreshTokenExpiry),
-    );
+    const expiresAt = new Date(Date.now() + this.parseExpiry(this.refreshTokenExpiry));
 
     // Store refresh token in database
     await prisma.refreshToken.create({
@@ -89,11 +87,7 @@ class JWTService {
       verified: user.verified,
     });
 
-    const refreshToken = await this.generateRefreshToken(
-      user.id,
-      userAgent,
-      ipAddress,
-    );
+    const refreshToken = await this.generateRefreshToken(user.id, userAgent, ipAddress);
 
     return { accessToken, refreshToken };
   }

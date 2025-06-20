@@ -132,30 +132,21 @@ export class ResponseHelper {
   /**
    * Unauthorized response
    */
-  static unauthorized(
-    res: Response,
-    message: string = 'Unauthorized',
-  ): Response<ApiResponse> {
+  static unauthorized(res: Response, message: string = 'Unauthorized'): Response<ApiResponse> {
     return this.error(res, message, 401);
   }
 
   /**
    * Forbidden response
    */
-  static forbidden(
-    res: Response,
-    message: string = 'Forbidden',
-  ): Response<ApiResponse> {
+  static forbidden(res: Response, message: string = 'Forbidden'): Response<ApiResponse> {
     return this.error(res, message, 403);
   }
 
   /**
    * Not Found response
    */
-  static notFound(
-    res: Response,
-    message: string = 'Resource not found',
-  ): Response<ApiResponse> {
+  static notFound(res: Response, message: string = 'Resource not found'): Response<ApiResponse> {
     return this.error(res, message, 404);
   }
 

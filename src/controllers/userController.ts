@@ -30,9 +30,7 @@ export class UserController {
       const verified = req.query.verified === 'true';
       const offset = (page - 1) * limit;
 
-      logger.info(
-        `Getting users - Page: ${page}, Limit: ${limit}, Search: ${search}`,
-      );
+      logger.info(`Getting users - Page: ${page}, Limit: ${limit}, Search: ${search}`);
 
       const where: any = {};
 
@@ -299,10 +297,7 @@ export class UserController {
       });
 
       // Upload new avatar to Cloudinary
-      const uploadResult = await cloudinaryService.uploadAvatar(
-        req.file.buffer,
-        userId,
-      );
+      const uploadResult = await cloudinaryService.uploadAvatar(req.file.buffer, userId);
 
       // Update user avatar in database
       const updatedUser = await prisma.user.update({
@@ -343,10 +338,7 @@ export class UserController {
   /**
    * Upload user cover image
    */
-  static uploadCoverImage = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static uploadCoverImage = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
       if (!userId) {
@@ -366,10 +358,7 @@ export class UserController {
       });
 
       // Upload new cover image to Cloudinary
-      const uploadResult = await cloudinaryService.uploadCoverImage(
-        req.file.buffer,
-        userId,
-      );
+      const uploadResult = await cloudinaryService.uploadCoverImage(req.file.buffer, userId);
 
       // Update user cover image in database
       const updatedUser = await prisma.user.update({
@@ -456,10 +445,7 @@ export class UserController {
   /**
    * Remove user cover image
    */
-  static removeCoverImage = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static removeCoverImage = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
       if (!userId) {
@@ -756,10 +742,7 @@ export class UserController {
   /**
    * Change password
    */
-  static changePassword = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static changePassword = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
       if (!userId) {
@@ -781,10 +764,7 @@ export class UserController {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(
-        currentPassword,
-        user.password,
-      );
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isCurrentPasswordValid) {
         badRequest(res, 'Current password is incorrect');
         return;
@@ -802,15 +782,9 @@ export class UserController {
 
       // Send notification email
       try {
-        await emailService.sendPasswordChangeNotification(
-          user.email,
-          user.username,
-        );
+        await emailService.sendPasswordChangeNotification(user.email, user.username);
       } catch (emailError) {
-        logger.error(
-          'Failed to send password change notification:',
-          emailError,
-        );
+        logger.error('Failed to send password change notification:', emailError);
       }
 
       logger.info(`Password changed for user: ${userId}`);
@@ -824,10 +798,7 @@ export class UserController {
   /**
    * Deactivate account
    */
-  static deactivateAccount = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static deactivateAccount = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
       if (!userId) {
@@ -869,10 +840,7 @@ export class UserController {
 
       // Send confirmation email
       try {
-        await emailService.sendAccountDeactivationNotification(
-          user.email,
-          user.username,
-        );
+        await emailService.sendAccountDeactivationNotification(user.email, user.username);
       } catch (emailError) {
         logger.error('Failed to send deactivation notification:', emailError);
       }

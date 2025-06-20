@@ -45,10 +45,7 @@ class RealtimeService {
           return next(new Error('Authentication required'));
         }
 
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_ACCESS_SECRET!,
-        ) as any;
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any;
 
         // Get user info from database
         const user = await prisma.user.findUnique({
@@ -67,9 +64,7 @@ class RealtimeService {
         socket.userId = user.id;
         socket.username = user.username;
 
-        logger.info(
-          `User authenticated via socket: ${user.username} (${user.id})`,
-        );
+        logger.info(`User authenticated via socket: ${user.username} (${user.id})`);
         next();
       } catch (error) {
         logger.error('Socket authentication failed:', error);
@@ -105,9 +100,7 @@ class RealtimeService {
     // Join global activity room
     socket.join('global:activity');
 
-    logger.info(
-      `User connected: ${socket.username} (${socket.userId}) - Socket: ${socket.id}`,
-    );
+    logger.info(`User connected: ${socket.username} (${socket.userId}) - Socket: ${socket.id}`);
 
     // Notify about online status
     this.broadcastUserStatus(socket.userId, 'online');
@@ -155,18 +148,15 @@ class RealtimeService {
     });
 
     // Handle typing indicators for post comments
-    socket.on(
-      'post:typing',
-      ({ postId, isTyping }: { postId: string; isTyping: boolean }) => {
-        socket.broadcast.to(`post:${postId}`).emit('user:typing', {
-          userId: socket.userId,
-          username: socket.username,
-          postId,
-          isTyping,
-          timestamp: new Date(),
-        });
-      },
-    );
+    socket.on('post:typing', ({ postId, isTyping }: { postId: string; isTyping: boolean }) => {
+      socket.broadcast.to(`post:${postId}`).emit('user:typing', {
+        userId: socket.userId,
+        username: socket.username,
+        postId,
+        isTyping,
+        timestamp: new Date(),
+      });
+    });
   }
 
   private handleCommentEvents(socket: AuthenticatedSocket): void {
@@ -193,48 +183,41 @@ class RealtimeService {
           timestamp: new Date(),
         });
       },
-    );  }
+    );
+  }
 
   private handleMessageEvents(socket: AuthenticatedSocket): void {
     // Join conversation room
     socket.on('join:conversation', (data: { conversationId: string }) => {
       socket.join(`conversation:${data.conversationId}`);
-      logger.info(
-        `User ${socket.username} joined conversation: ${data.conversationId}`,
-      );
+      logger.info(`User ${socket.username} joined conversation: ${data.conversationId}`);
     });
 
     // Leave conversation room
     socket.on('leave:conversation', (data: { conversationId: string }) => {
       socket.leave(`conversation:${data.conversationId}`);
-      logger.info(
-        `User ${socket.username} left conversation: ${data.conversationId}`,
-      );
+      logger.info(`User ${socket.username} left conversation: ${data.conversationId}`);
     });
 
     // Handle typing indicators
     socket.on('typing:start', (data: { conversationId: string }) => {
-      socket.broadcast
-        .to(`conversation:${data.conversationId}`)
-        .emit('user:typing', {
-          userId: socket.userId,
-          username: socket.username,
-          conversationId: data.conversationId,
-          isTyping: true,
-          timestamp: new Date(),
-        });
+      socket.broadcast.to(`conversation:${data.conversationId}`).emit('user:typing', {
+        userId: socket.userId,
+        username: socket.username,
+        conversationId: data.conversationId,
+        isTyping: true,
+        timestamp: new Date(),
+      });
     });
 
     socket.on('typing:stop', (data: { conversationId: string }) => {
-      socket.broadcast
-        .to(`conversation:${data.conversationId}`)
-        .emit('user:typing', {
-          userId: socket.userId,
-          username: socket.username,
-          conversationId: data.conversationId,
-          isTyping: false,
-          timestamp: new Date(),
-        });
+      socket.broadcast.to(`conversation:${data.conversationId}`).emit('user:typing', {
+        userId: socket.userId,
+        username: socket.username,
+        conversationId: data.conversationId,
+        isTyping: false,
+        timestamp: new Date(),
+      });
     });
   }
 
@@ -258,9 +241,7 @@ class RealtimeService {
           socket.join(`conversation:${conv.conversationId}`);
         });
 
-        logger.info(
-          `User ${socket.username} joined ${conversations.length} conversation rooms`,
-        );
+        logger.info(`User ${socket.username} joined ${conversations.length} conversation rooms`);
       } catch (error) {
         logger.error('Error joining conversations:', error);
       }
@@ -367,11 +348,7 @@ class RealtimeService {
   /**
    * Broadcast like removal
    */
-  public broadcastPostUnlike(
-    postId: string,
-    userId: string,
-    authorId: string,
-  ): void {
+  public broadcastPostUnlike(postId: string, userId: string, authorId: string): void {
     this.io.to(`post:${postId}`).emit('post:unliked', {
       postId,
       userId,
@@ -398,17 +375,12 @@ class RealtimeService {
       });
 
       // Notify parent comment author
-      if (
-        comment.parent?.user?.id &&
-        comment.parent.user.id !== comment.user.id
-      ) {
-        this.io
-          .to(`user:${comment.parent.user.id}`)
-          .emit('notification:reply', {
-            type: 'comment_reply',
-            comment,
-            timestamp: new Date(),
-          });
+      if (comment.parent?.user?.id && comment.parent.user.id !== comment.user.id) {
+        this.io.to(`user:${comment.parent.user.id}`).emit('notification:reply', {
+          type: 'comment_reply',
+          comment,
+          timestamp: new Date(),
+        });
       }
     }
 
@@ -421,9 +393,7 @@ class RealtimeService {
       });
     }
 
-    logger.info(
-      `Broadcasted new comment: ${comment.id} on post ${comment.postId}`,
-    );
+    logger.info(`Broadcasted new comment: ${comment.id} on post ${comment.postId}`);
   }
 
   /**
@@ -448,11 +418,7 @@ class RealtimeService {
   /**
    * Broadcast comment deletion
    */
-  public broadcastCommentDelete(
-    commentId: string,
-    postId: string,
-    parentId?: string,
-  ): void {
+  public broadcastCommentDelete(commentId: string, postId: string, parentId?: string): void {
     this.io.to(`post:${postId}`).emit('comment:deleted', {
       commentId,
       postId,
@@ -492,19 +458,13 @@ class RealtimeService {
       });
     }
 
-    logger.info(
-      `Broadcasted comment like: ${commentId} by ${like.user.username}`,
-    );
+    logger.info(`Broadcasted comment like: ${commentId} by ${like.user.username}`);
   }
 
   /**
    * Broadcast comment unlike
    */
-  public broadcastCommentUnlike(
-    commentId: string,
-    userId: string,
-    postId: string,
-  ): void {
+  public broadcastCommentUnlike(commentId: string, userId: string, postId: string): void {
     this.io.to(`post:${postId}`).emit('comment:unliked', {
       commentId,
       userId,
@@ -516,19 +476,14 @@ class RealtimeService {
   /**
    * Broadcast user follow event
    */
-  public broadcastUserFollow(
-    followerId: string,
-    followingId: string,
-    follower: any,
-  ): void {
+  public broadcastUserFollow(followerId: string, followingId: string, follower: any): void {
     this.io.to(`user:${followingId}`).emit('notification:follow', {
       type: 'user_follow',
       follower,
       timestamp: new Date(),
     });
-    logger.info(
-      `Broadcasted follow: ${follower.username} followed user ${followingId}`,
-    );  }
+    logger.info(`Broadcasted follow: ${follower.username} followed user ${followingId}`);
+  }
 
   /**
    * Broadcast new message in conversation
@@ -538,9 +493,7 @@ class RealtimeService {
       message,
       timestamp: new Date(),
     });
-    logger.info(
-      `Broadcasted new message: ${message.id} in conversation: ${conversationId}`,
-    );
+    logger.info(`Broadcasted new message: ${message.id} in conversation: ${conversationId}`);
   }
 
   /**
@@ -551,55 +504,37 @@ class RealtimeService {
       message,
       timestamp: new Date(),
     });
-    logger.info(
-      `Broadcasted message update: ${message.id} in conversation: ${conversationId}`,
-    );
+    logger.info(`Broadcasted message update: ${message.id} in conversation: ${conversationId}`);
   }
 
   /**
    * Broadcast message deletion
    */
-  public broadcastMessageDelete(
-    conversationId: string,
-    messageId: string,
-    userId: string,
-  ): void {
+  public broadcastMessageDelete(conversationId: string, messageId: string, userId: string): void {
     this.io.to(`conversation:${conversationId}`).emit('message:deleted', {
       messageId,
       userId,
       timestamp: new Date(),
     });
-    logger.info(
-      `Broadcasted message deletion: ${messageId} in conversation: ${conversationId}`,
-    );
+    logger.info(`Broadcasted message deletion: ${messageId} in conversation: ${conversationId}`);
   }
 
   /**
    * Broadcast message reaction
    */
-  public broadcastMessageReaction(
-    conversationId: string,
-    messageId: string,
-    reaction: any,
-  ): void {
+  public broadcastMessageReaction(conversationId: string, messageId: string, reaction: any): void {
     this.io.to(`conversation:${conversationId}`).emit('message:reaction', {
       messageId,
       reaction,
       timestamp: new Date(),
     });
-    logger.info(
-      `Broadcasted message reaction: ${messageId} in conversation: ${conversationId}`,
-    );
+    logger.info(`Broadcasted message reaction: ${messageId} in conversation: ${conversationId}`);
   }
 
   /**
    * Broadcast message read receipt
    */
-  public broadcastMessageRead(
-    conversationId: string,
-    userId: string,
-    messageId: string,
-  ): void {
+  public broadcastMessageRead(conversationId: string, userId: string, messageId: string): void {
     this.io.to(`conversation:${conversationId}`).emit('message:read', {
       userId,
       messageId,
@@ -613,11 +548,7 @@ class RealtimeService {
   /**
    * Broadcast typing indicator
    */
-  public broadcastTyping(
-    conversationId: string,
-    userId: string,
-    isTyping: boolean,
-  ): void {
+  public broadcastTyping(conversationId: string, userId: string, isTyping: boolean): void {
     this.io.to(`conversation:${conversationId}`).emit('user:typing', {
       userId,
       isTyping,

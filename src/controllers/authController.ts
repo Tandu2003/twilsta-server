@@ -20,38 +20,26 @@ const prisma = new PrismaClient();
 /**
  * Helper function to set auth cookies
  */
-const setAuthCookies = (
-  res: Response,
-  accessToken: string,
-  refreshToken: string,
-) => {
+const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
   // Set access token cookie
-  res.cookie(
-    process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken',
-    accessToken,
-    {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
-    },
-  );
+  res.cookie(process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken', accessToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: '/',
+  });
 
   // Set refresh token cookie
-  res.cookie(
-    process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken',
-    refreshToken,
-    {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/auth',
-    },
-  );
+  res.cookie(process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/auth',
+  });
 };
 
 /**
@@ -127,19 +115,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         expiresAt: verificationExpires,
       },
     }); // Send verification email
-    await emailService.sendVerificationEmail(
-      email,
-      verificationToken,
-      username,
-    );
+    await emailService.sendVerificationEmail(email, verificationToken, username);
     logger.info(`User registered: ${user.username} (${user.email})`);
     logger.debug('About to send created response...');
 
     try {
       res.status(201).json({
         success: true,
-        message:
-          'Registration successful. Please check your email for verification instructions.',
+        message: 'Registration successful. Please check your email for verification instructions.',
         data: { user },
       });
       logger.debug('Created response sent successfully');
@@ -219,8 +202,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  */
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
-    const refreshToken =
-      req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
+    const refreshToken = req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
 
     if (refreshToken) {
       // Revoke refresh token
@@ -243,10 +225,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
 /**
  * Refresh access token
  */
-export const refreshToken = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
     const { refreshToken } = req.body; // Set by validateRefreshToken middleware
 
@@ -259,17 +238,13 @@ export const refreshToken = async (
 
     // Set new access token cookie
     const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie(
-      process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken',
-      result.accessToken,
-      {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? 'strict' : 'lax',
-        maxAge: 15 * 60 * 1000, // 15 minutes
-        path: '/',
-      },
-    );
+    res.cookie(process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/',
+    });
 
     success(
       res,
@@ -294,10 +269,7 @@ export const refreshToken = async (
 /**
  * Verify email
  */
-export const verifyEmail = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.params;
 
@@ -348,10 +320,7 @@ export const verifyEmail = async (
 /**
  * Resend verification email
  */
-export const resendVerification = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const resendVerification = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
@@ -392,11 +361,7 @@ export const resendVerification = async (
     });
 
     // Send verification email
-    await emailService.sendVerificationEmail(
-      email,
-      verificationToken,
-      user.username,
-    );
+    await emailService.sendVerificationEmail(email, verificationToken, user.username);
 
     logger.info(`Verification email resent to: ${email}`);
     success(res, null, 'Verification email sent');
@@ -409,10 +374,7 @@ export const resendVerification = async (
 /**
  * Request password reset
  */
-export const requestPasswordReset = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const requestPasswordReset = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
@@ -422,11 +384,7 @@ export const requestPasswordReset = async (
 
     if (!user) {
       // Don't reveal if email exists
-      success(
-        res,
-        null,
-        'If the email exists, a password reset link has been sent',
-      );
+      success(res, null, 'If the email exists, a password reset link has been sent');
       return;
     }
 
@@ -456,11 +414,7 @@ export const requestPasswordReset = async (
     await emailService.sendPasswordResetEmail(email, resetToken, user.username);
 
     logger.info(`Password reset requested for: ${email}`);
-    success(
-      res,
-      null,
-      'If the email exists, a password reset link has been sent',
-    );
+    success(res, null, 'If the email exists, a password reset link has been sent');
   } catch (error) {
     logger.error('Password reset request failed:', error);
     internalError(res, 'Password reset request failed');
@@ -470,10 +424,7 @@ export const requestPasswordReset = async (
 /**
  * Reset password
  */
-export const resetPassword = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.params;
     const { password } = req.body;
@@ -539,10 +490,7 @@ export const resetPassword = async (
 /**
  * Get current user info
  */
-export const getCurrentUser = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       unauthorized(res, 'Authentication required');
@@ -586,10 +534,7 @@ export const getCurrentUser = async (
 /**
  * Update user last active time
  */
-export const updateLastActive = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
+export const updateLastActive = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
       unauthorized(res, 'Authentication required');

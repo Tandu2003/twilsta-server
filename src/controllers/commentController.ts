@@ -22,10 +22,7 @@ export class CommentController {
   /**
    * Get all comments for a post with pagination and nested replies
    */
-  static getCommentsByPost = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
+  static getCommentsByPost = async (req: Request, res: Response): Promise<void> => {
     try {
       const { postId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
@@ -213,10 +210,7 @@ export class CommentController {
       const { content, postId, parentId } = req.body;
 
       // Validate required fields
-      if (
-        !content &&
-        (!req.files || !Array.isArray(req.files) || req.files.length === 0)
-      ) {
+      if (!content && (!req.files || !Array.isArray(req.files) || req.files.length === 0)) {
         badRequest(res, 'Content or media files are required');
         return;
       }
@@ -267,9 +261,7 @@ export class CommentController {
         }
 
         depth = parentComment.depth + 1;
-        path = parentComment.path
-          ? `${parentComment.path}/${parentComment.id}`
-          : parentComment.id;
+        path = parentComment.path ? `${parentComment.path}/${parentComment.id}` : parentComment.id;
       }
 
       let images: string[] = [];
@@ -282,34 +274,18 @@ export class CommentController {
         try {
           for (const file of req.files) {
             if (file.mimetype.startsWith('image/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                `comments/images`,
-                'image',
-              );
+              const result = await cloudinaryService.uploadFile(file, `comments/images`, 'image');
               images.push(result.secure_url);
             } else if (file.mimetype.startsWith('video/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                `comments/videos`,
-                'video',
-              );
+              const result = await cloudinaryService.uploadFile(file, `comments/videos`, 'video');
               videos.push(result.secure_url);
             } else if (file.mimetype.startsWith('audio/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                `comments/audio`,
-                'auto',
-              );
+              const result = await cloudinaryService.uploadFile(file, `comments/audio`, 'auto');
               audioUrl = result.secure_url;
               break; // Only one audio file allowed
             } else {
               // Documents (PDF, DOC, etc.)
-              const result = await cloudinaryService.uploadFile(
-                file,
-                `comments/documents`,
-                'auto',
-              );
+              const result = await cloudinaryService.uploadFile(file, `comments/documents`, 'auto');
               documents.push(result.secure_url);
             }
           }
@@ -394,8 +370,7 @@ export class CommentController {
         // Notify parent comment author if this is a reply
         if (parentComment && parentComment.user.id !== userId) {
           await emailService.sendReplyNotification(parentComment.user.email, {
-            originalCommenter:
-              parentComment.user.displayName || parentComment.user.username,
+            originalCommenter: parentComment.user.displayName || parentComment.user.username,
             replier: newComment.user.displayName || newComment.user.username,
             replyContent: content,
             originalComment: parentComment.content,
@@ -516,11 +491,7 @@ export class CommentController {
       }
 
       // Collect all media URLs for deletion
-      const mediaUrls = [
-        ...comment.images,
-        ...comment.videos,
-        ...comment.documents,
-      ];
+      const mediaUrls = [...comment.images, ...comment.videos, ...comment.documents];
       if (comment.audioUrl) {
         mediaUrls.push(comment.audioUrl);
       }
@@ -668,11 +639,7 @@ export class CommentController {
         logger.info(`Comment liked: ${id} by user: ${userId}`);
       }
 
-      success(
-        res,
-        { isLiked },
-        `Comment ${isLiked ? 'liked' : 'unliked'} successfully`,
-      );
+      success(res, { isLiked }, `Comment ${isLiked ? 'liked' : 'unliked'} successfully`);
     } catch (error) {
       logger.error('Error toggling comment like:', error);
       internalError(res, 'Failed to toggle comment like');
@@ -721,35 +688,19 @@ export class CommentController {
       try {
         for (const file of req.files) {
           if (file.mimetype.startsWith('image/')) {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              `comments/images`,
-              'image',
-            );
+            const result = await cloudinaryService.uploadFile(file, `comments/images`, 'image');
             newImages.push(result.secure_url);
           } else if (file.mimetype.startsWith('video/')) {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              `comments/videos`,
-              'video',
-            );
+            const result = await cloudinaryService.uploadFile(file, `comments/videos`, 'video');
             newVideos.push(result.secure_url);
           } else if (file.mimetype.startsWith('audio/')) {
             if (!comment.audioUrl) {
               // Only add if no audio exists
-              const result = await cloudinaryService.uploadFile(
-                file,
-                `comments/audio`,
-                'auto',
-              );
+              const result = await cloudinaryService.uploadFile(file, `comments/audio`, 'auto');
               newAudioUrl = result.secure_url;
             }
           } else {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              `comments/documents`,
-              'auto',
-            );
+            const result = await cloudinaryService.uploadFile(file, `comments/documents`, 'auto');
             newDocuments.push(result.secure_url);
           }
         }
@@ -835,14 +786,10 @@ export class CommentController {
       // Remove URLs from the appropriate array based on media type
       switch (mediaType) {
         case 'image':
-          updateData.images = comment.images.filter(
-            (url) => !mediaUrls.includes(url),
-          );
+          updateData.images = comment.images.filter((url) => !mediaUrls.includes(url));
           break;
         case 'video':
-          updateData.videos = comment.videos.filter(
-            (url) => !mediaUrls.includes(url),
-          );
+          updateData.videos = comment.videos.filter((url) => !mediaUrls.includes(url));
           break;
         case 'audio':
           if (mediaUrls.includes(comment.audioUrl)) {
@@ -850,9 +797,7 @@ export class CommentController {
           }
           break;
         case 'document':
-          updateData.documents = comment.documents.filter(
-            (url) => !mediaUrls.includes(url),
-          );
+          updateData.documents = comment.documents.filter((url) => !mediaUrls.includes(url));
           break;
         default:
           badRequest(res, 'Invalid media type');

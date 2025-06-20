@@ -30,12 +30,7 @@ router.post('/login', loginValidation, validateRequest, login);
 router.post('/logout', logout);
 
 // Email verification
-router.get(
-  '/verify/:token',
-  verifyEmailValidation,
-  validateRequest,
-  verifyEmail,
-);
+router.get('/verify/:token', verifyEmailValidation, validateRequest, verifyEmail);
 router.post(
   '/resend-verification',
   resendVerificationValidation,
@@ -50,12 +45,7 @@ router.post(
   validateRequest,
   requestPasswordReset,
 );
-router.post(
-  '/reset-password/:token',
-  resetPasswordValidation,
-  validateRequest,
-  resetPassword,
-);
+router.post('/reset-password/:token', resetPasswordValidation, validateRequest, resetPassword);
 
 // Token refresh
 router.post('/refresh', validateRefreshToken, refreshToken);

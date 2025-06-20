@@ -3,7 +3,11 @@ import { ConversationController } from '../controllers/conversationController';
 import { authenticateToken } from '../middleware/auth';
 import { handleValidationErrors } from '../middleware/errorHandler';
 import { conversationValidations } from '../middleware/validations';
-import { uploadConversationAvatar, validateUploadedFiles, handleUploadError } from '../middleware/upload';
+import {
+  uploadConversationAvatar,
+  validateUploadedFiles,
+  handleUploadError,
+} from '../middleware/upload';
 
 const router = Router();
 

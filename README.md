@@ -602,17 +602,15 @@ Request Body:
 
 ```json
 {
-  "mediaUrls": [
-    "https://cloudinary.../file1.jpg",
-    "https://cloudinary.../file2.mp4"
-  ],
+  "mediaUrls": ["https://cloudinary.../file1.jpg", "https://cloudinary.../file2.mp4"],
   "mediaType": "image" // or "video", "audio", "document"
 }
 ```
 
 ### 💬 Message System
 
-The message system provides real-time messaging capabilities with media support and Cloudinary integration.
+The message system provides real-time messaging capabilities with media support and Cloudinary
+integration.
 
 #### Get Messages in Conversation
 
@@ -621,6 +619,7 @@ GET /api/messages/:conversationId?page=1&limit=50
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -692,12 +691,14 @@ POST /api/messages/:conversationId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
 ```
 
 Form Data:
+
 - `content` (optional): Text content of the message
 - `type` (optional): Message type (TEXT, IMAGE, VIDEO, AUDIO, DOCUMENT) - defaults to TEXT
 - `media` (optional): Media file to upload
@@ -733,6 +734,7 @@ PUT /api/messages/:messageId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -752,6 +754,7 @@ DELETE /api/messages/:messageId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -766,6 +769,7 @@ POST /api/messages/:messageId/react
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -787,6 +791,7 @@ POST /api/messages/:conversationId/read
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -810,6 +815,7 @@ GET /api/conversations?page=1&limit=20
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -875,6 +881,7 @@ GET /api/conversations/:conversationId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -886,12 +893,14 @@ POST /api/conversations
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
 ```
 
 Form Data:
+
 - `participantIds`: Array of user IDs to add to conversation
 - `type` (optional): Conversation type (DIRECT, GROUP) - defaults to DIRECT for 2 participants
 - `name` (optional): Group name (required for GROUP type)
@@ -916,12 +925,14 @@ PUT /api/conversations/:conversationId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 Content-Type: multipart/form-data
 ```
 
 Form Data:
+
 - `name` (optional): Updated group name
 - `description` (optional): Updated group description
 - `avatar` (optional): Updated group avatar image file
@@ -933,6 +944,7 @@ POST /api/conversations/:conversationId/participants
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -952,6 +964,7 @@ DELETE /api/conversations/:conversationId/participants/:participantId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -963,6 +976,7 @@ POST /api/conversations/:conversationId/leave
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -974,6 +988,7 @@ DELETE /api/conversations/:conversationId
 ```
 
 Headers:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -987,20 +1002,22 @@ Note: Only available for GROUP conversations and requires ADMIN role.
 ```javascript
 const socket = io('http://localhost:5000', {
   auth: {
-    token: 'your_jwt_token'
-  }
+    token: 'your_jwt_token',
+  },
 });
 ```
 
 #### Message Events
 
 **Client to Server:**
+
 - `join-conversation`: Join conversation room
 - `leave-conversation`: Leave conversation room
 - `typing`: Send typing indicator
 - `stop-typing`: Stop typing indicator
 
 **Server to Client:**
+
 - `message:new`: New message received
 - `message:updated`: Message was edited
 - `message:deleted`: Message was deleted
@@ -1012,6 +1029,7 @@ const socket = io('http://localhost:5000', {
 #### Conversation Events
 
 **Server to Client:**
+
 - `conversation:created`: New conversation created
 - `conversation:updated`: Conversation details updated
 - `conversation:participant-added`: New participant added
@@ -1030,9 +1048,9 @@ socket.on('message:new', (message) => {
 });
 
 // Send typing indicator
-socket.emit('typing', { 
+socket.emit('typing', {
   conversationId: 'conv_id',
-  isTyping: true 
+  isTyping: true,
 });
 
 // Listen for typing indicators

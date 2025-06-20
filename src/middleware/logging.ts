@@ -24,12 +24,10 @@ morgan.token('body', (req: Request) => {
 });
 
 // Custom format for detailed logging
-const detailedFormat =
-  ':id :method :url :status :res[content-length] - :response-time ms :body';
+const detailedFormat = ':id :method :url :status :res[content-length] - :response-time ms :body';
 
 // Simple format for production
-const simpleFormat =
-  ':method :url :status :res[content-length] - :response-time ms';
+const simpleFormat = ':method :url :status :res[content-length] - :response-time ms';
 
 // Create morgan middleware
 export const requestLogger = morgan(

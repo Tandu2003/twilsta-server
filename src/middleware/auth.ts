@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwtService, { JWTPayload } from '../services/jwtService';
-import {
-  unauthorized,
-  forbidden,
-  internalError,
-} from '../utils/responseHelper';
+import { unauthorized, forbidden, internalError } from '../utils/responseHelper';
 import logger from '../utils/logger';
 
 // Extend Request interface to include user
@@ -34,25 +30,18 @@ export const authenticateToken = async (
       accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
     } else {
       // Fallback to cookie-based auth (for web requests)
-      accessToken =
-        req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
+      accessToken = req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
     }
 
     if (!accessToken) {
-      unauthorized(
-        res,
-        'Access token not found. Please log in to access this resource',
-      );
+      unauthorized(res, 'Access token not found. Please log in to access this resource');
       return;
     }
 
     const payload = jwtService.verifyAccessToken(accessToken);
 
     if (!payload) {
-      unauthorized(
-        res,
-        'Invalid or expired access token. Please refresh your session.',
-      );
+      unauthorized(res, 'Invalid or expired access token. Please refresh your session.');
       return;
     }
 
@@ -60,7 +49,8 @@ export const authenticateToken = async (
     req.user = payload;
 
     logger.debug(`Authenticated user: ${payload.userId}`);
-    next();  } catch (error) {
+    next();
+  } catch (error) {
     logger.error('Token authentication failed:', error);
     if (!res.headersSent) {
       unauthorized(res, 'Authentication failed');
@@ -71,11 +61,7 @@ export const authenticateToken = async (
 /**
  * Middleware to check if user is verified
  */
-export const requireVerification = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+export const requireVerification = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {
     unauthorized(res, 'Authentication required');
     return;
@@ -101,8 +87,7 @@ export const optionalAuth = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const accessToken =
-      req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
+    const accessToken = req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
 
     if (accessToken) {
       const payload = jwtService.verifyAccessToken(accessToken);
@@ -128,8 +113,7 @@ export const validateRefreshToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const refreshToken =
-      req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
+    const refreshToken = req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
 
     if (!refreshToken) {
       unauthorized(res, 'Refresh token not found. Please log in again');
@@ -139,10 +123,7 @@ export const validateRefreshToken = async (
     const verification = await jwtService.verifyRefreshToken(refreshToken);
 
     if (!verification.valid) {
-      unauthorized(
-        res,
-        'Invalid or expired refresh token. Session expired. Please log in again.',
-      );
+      unauthorized(res, 'Invalid or expired refresh token. Session expired. Please log in again.');
       return;
     }
 

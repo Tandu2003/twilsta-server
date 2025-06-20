@@ -46,10 +46,7 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      logger.info(
-        `📧 Email sent successfully to ${options.to}:`,
-        info.messageId,
-      );
+      logger.info(`📧 Email sent successfully to ${options.to}:`, info.messageId);
       return true;
     } catch (error) {
       logger.error(`❌ Failed to send email to ${options.to}:`, error);
@@ -121,11 +118,7 @@ class EmailService {
     return this.sendEmail(options);
   }
 
-  async sendVerificationEmail(
-    email: string,
-    token: string,
-    username: string,
-  ): Promise<boolean> {
+  async sendVerificationEmail(email: string, token: string, username: string): Promise<boolean> {
     const verificationUrl = `${process.env.VERIFY_EMAIL_URL}?token=${token}`;
 
     const html = `
@@ -195,11 +188,7 @@ class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(
-    email: string,
-    token: string,
-    username: string,
-  ): Promise<boolean> {
+  async sendPasswordResetEmail(email: string, token: string, username: string): Promise<boolean> {
     const resetUrl = `${process.env.RESET_PASSWORD_URL}?token=${token}`;
 
     const html = `
@@ -277,10 +266,7 @@ class EmailService {
     });
   }
 
-  async sendPasswordChangedNotification(
-    email: string,
-    username: string,
-  ): Promise<boolean> {
+  async sendPasswordChangedNotification(email: string, username: string): Promise<boolean> {
     const html = `
       <!DOCTYPE html>
       <html>
@@ -414,10 +400,7 @@ class EmailService {
   /**
    * Send password change notification email
    */
-  async sendPasswordChangeNotification(
-    email: string,
-    username: string,
-  ): Promise<boolean> {
+  async sendPasswordChangeNotification(email: string, username: string): Promise<boolean> {
     const html = `
       <!DOCTYPE html>
       <html>
@@ -489,10 +472,7 @@ class EmailService {
   /**
    * Send account deactivation notification email
    */
-  async sendAccountDeactivationNotification(
-    email: string,
-    username: string,
-  ): Promise<boolean> {
+  async sendAccountDeactivationNotification(email: string, username: string): Promise<boolean> {
     const html = `
       <!DOCTYPE html>
       <html>
@@ -604,9 +584,7 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${data.postAuthor}!</h2>
-            <p><span class="username">${
-              data.commenter
-            }</span> commented on your post:</p>
+            <p><span class="username">${data.commenter}</span> commented on your post:</p>
 
             <div class="post-box">
               <strong>Your Post:</strong><br>
@@ -697,9 +675,7 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${data.originalCommenter}!</h2>
-            <p><span class="username">${
-              data.replier
-            }</span> replied to your comment:</p>
+            <p><span class="username">${data.replier}</span> replied to your comment:</p>
 
             <div class="comment-box">
               <strong>Your Comment:</strong><br>

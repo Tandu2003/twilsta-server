@@ -70,19 +70,12 @@ export const apiLimiter = createRateLimit(
 /**
  * Request size limiter
  */
-export const requestSizeLimiter = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+export const requestSizeLimiter = (req: Request, res: Response, next: NextFunction): void => {
   const contentLength = parseInt(req.headers['content-length'] || '0');
   const maxSize = 10 * 1024 * 1024; // 10MB
 
   if (contentLength > maxSize) {
-    ResponseHelper.badRequest(
-      res,
-      'Request payload too large. Maximum size is 10MB',
-    );
+    ResponseHelper.badRequest(res, 'Request payload too large. Maximum size is 10MB');
     return;
   }
 

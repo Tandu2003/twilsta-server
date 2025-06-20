@@ -36,18 +36,8 @@ router.use('/conversations', conversationRoutes);
 
 // User routes
 // Public routes
-router.get(
-  '/users',
-  crudValidations.pagination,
-  handleValidationErrors,
-  UserController.getAll,
-);
-router.get(
-  '/users/:id',
-  crudValidations.getById,
-  handleValidationErrors,
-  UserController.getById,
-);
+router.get('/users', crudValidations.pagination, handleValidationErrors, UserController.getAll);
+router.get('/users/:id', crudValidations.getById, handleValidationErrors, UserController.getById);
 router.get(
   '/users/username/:username',
   userValidations.getByUsername,
@@ -160,18 +150,8 @@ router.delete(
 
 // Post routes
 // Public routes
-router.get(
-  '/posts',
-  postValidations.getAll,
-  handleValidationErrors,
-  PostController.getAll,
-);
-router.get(
-  '/posts/:id',
-  crudValidations.getById,
-  handleValidationErrors,
-  PostController.getById,
-);
+router.get('/posts', postValidations.getAll, handleValidationErrors, PostController.getAll);
+router.get('/posts/:id', crudValidations.getById, handleValidationErrors, PostController.getById);
 router.get(
   '/posts/:id/replies',
   crudValidations.getById.concat(crudValidations.pagination),
@@ -180,18 +160,8 @@ router.get(
 );
 
 // Protected routes (require authentication - to be implemented)
-router.post(
-  '/posts',
-  postValidations.create,
-  handleValidationErrors,
-  PostController.create,
-);
-router.put(
-  '/posts/:id',
-  postValidations.update,
-  handleValidationErrors,
-  PostController.update,
-);
+router.post('/posts', postValidations.create, handleValidationErrors, PostController.create);
+router.put('/posts/:id', postValidations.update, handleValidationErrors, PostController.update);
 router.delete(
   '/posts/:id',
   crudValidations.deleteById,

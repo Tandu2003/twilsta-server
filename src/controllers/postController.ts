@@ -229,10 +229,7 @@ export class PostController {
       const { content, type = 'TEXT', parentId, isPublic = true } = req.body;
 
       // Validate required fields
-      if (
-        !content &&
-        (!req.files || !Array.isArray(req.files) || req.files.length === 0)
-      ) {
+      if (!content && (!req.files || !Array.isArray(req.files) || req.files.length === 0)) {
         badRequest(res, 'Content or media files are required');
         return;
       }
@@ -246,25 +243,13 @@ export class PostController {
         try {
           for (const file of req.files) {
             if (file.mimetype.startsWith('image/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                'post/media',
-                'image',
-              );
+              const result = await cloudinaryService.uploadFile(file, 'post/media', 'image');
               images.push(result.secure_url);
             } else if (file.mimetype.startsWith('video/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                'post/media',
-                'video',
-              );
+              const result = await cloudinaryService.uploadFile(file, 'post/media', 'video');
               videos.push(result.secure_url);
             } else if (file.mimetype.startsWith('audio/')) {
-              const result = await cloudinaryService.uploadFile(
-                file,
-                'post/media',
-                'auto',
-              );
+              const result = await cloudinaryService.uploadFile(file, 'post/media', 'auto');
               audioUrl = result.secure_url;
               break; // Only one audio file allowed
             }
@@ -500,9 +485,7 @@ export class PostController {
 
         // Delete audio
         if (existingPost.audioUrl) {
-          const publicId = cloudinaryService.extractPublicIdFromUrl(
-            existingPost.audioUrl,
-          );
+          const publicId = cloudinaryService.extractPublicIdFromUrl(existingPost.audioUrl);
           deletePromises.push(cloudinaryService.deleteFile(publicId, 'video'));
         }
 
@@ -629,9 +612,7 @@ export class PostController {
         where: { postId: id },
       });
 
-      logger.info(
-        `Post ${liked ? 'liked' : 'unliked'}: ${id} by user: ${userId}`,
-      );
+      logger.info(`Post ${liked ? 'liked' : 'unliked'}: ${id} by user: ${userId}`);
       success(
         res,
         {
@@ -657,9 +638,7 @@ export class PostController {
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
 
-      logger.info(
-        `Getting replies for post: ${id} - Page: ${page}, Limit: ${limit}`,
-      );
+      logger.info(`Getting replies for post: ${id} - Page: ${page}, Limit: ${limit}`);
 
       // Check if parent post exists
       const parentPost = await prisma.post.findUnique({
@@ -771,25 +750,13 @@ export class PostController {
       try {
         for (const file of req.files) {
           if (file.mimetype.startsWith('image/')) {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              'post/media',
-              'image',
-            );
+            const result = await cloudinaryService.uploadFile(file, 'post/media', 'image');
             newImages.push(result.secure_url);
           } else if (file.mimetype.startsWith('video/')) {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              'post/media',
-              'video',
-            );
+            const result = await cloudinaryService.uploadFile(file, 'post/media', 'video');
             newVideos.push(result.secure_url);
           } else if (file.mimetype.startsWith('audio/') && !newAudioUrl) {
-            const result = await cloudinaryService.uploadFile(
-              file,
-              'post/media',
-              'auto',
-            );
+            const result = await cloudinaryService.uploadFile(file, 'post/media', 'auto');
             newAudioUrl = result.secure_url;
           }
         }
@@ -899,10 +866,7 @@ export class PostController {
       if (mediaType === 'image' && existingPost.images.includes(mediaUrl)) {
         updatedImages = existingPost.images.filter((url) => url !== mediaUrl);
         mediaFound = true;
-      } else if (
-        mediaType === 'video' &&
-        existingPost.videos.includes(mediaUrl)
-      ) {
+      } else if (mediaType === 'video' && existingPost.videos.includes(mediaUrl)) {
         updatedVideos = existingPost.videos.filter((url) => url !== mediaUrl);
         mediaFound = true;
       } else if (mediaType === 'audio' && existingPost.audioUrl === mediaUrl) {

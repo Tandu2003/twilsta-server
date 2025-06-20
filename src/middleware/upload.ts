@@ -4,13 +4,7 @@ import { badRequest } from '../utils/responseHelper';
 import logger from '../utils/logger';
 
 // File type validation
-const allowedImageTypes = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-];
+const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const allowedVideoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv'];
 const allowedAudioTypes = ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/aac'];
 const allowedDocumentTypes = [
@@ -38,27 +32,17 @@ const storage = multer.memoryStorage();
  * File filter for different types
  */
 const createFileFilter = (allowedTypes: string[], maxSize: number) => {
-  return (
-    req: Request,
-    file: Express.Multer.File,
-    cb: multer.FileFilterCallback,
-  ) => {
+  return (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     // Check file type
     if (!allowedTypes.includes(file.mimetype)) {
       logger.warn(`Invalid file type uploaded: ${file.mimetype}`);
-      return cb(
-        new Error(
-          `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`,
-        ),
-      );
+      return cb(new Error(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`));
     }
 
     // Check file size (this is also handled by multer limits, but good to double-check)
     if (file.size && file.size > maxSize) {
       logger.warn(`File too large: ${file.size} bytes`);
-      return cb(
-        new Error(`File too large. Maximum size: ${maxSize / (1024 * 1024)}MB`),
-      );
+      return cb(new Error(`File too large. Maximum size: ${maxSize / (1024 * 1024)}MB`));
     }
 
     cb(null, true);
@@ -110,11 +94,7 @@ export const uploadPostMedia = multer({
 
     if (!allowedTypes.includes(file.mimetype)) {
       logger.warn(`Invalid media file type uploaded: ${file.mimetype}`);
-      return cb(
-        new Error(
-          `Invalid file type. Allowed types: images, videos, audio files`,
-        ),
-      );
+      return cb(new Error(`Invalid file type. Allowed types: images, videos, audio files`));
     }
 
     // Check specific size limits based on file type
@@ -150,11 +130,7 @@ export const uploadSinglePostMedia = multer({
 
     if (!allowedTypes.includes(file.mimetype)) {
       logger.warn(`Invalid media file type uploaded: ${file.mimetype}`);
-      return cb(
-        new Error(
-          `Invalid file type. Allowed types: images, videos, audio files`,
-        ),
-      );
+      return cb(new Error(`Invalid file type. Allowed types: images, videos, audio files`));
     }
 
     cb(null, true);
@@ -170,23 +146,11 @@ export const uploadMessageAttachment = multer({
     fileSize: MAX_DOCUMENT_SIZE,
     files: 5, // Max 5 attachments per message
   },
-  fileFilter: (
-    req: Request,
-    file: Express.Multer.File,
-    cb: multer.FileFilterCallback,
-  ) => {
-    const allAllowedTypes = [
-      ...allowedImageTypes,
-      ...allowedVideoTypes,
-      ...allowedDocumentTypes,
-    ];
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allAllowedTypes = [...allowedImageTypes, ...allowedVideoTypes, ...allowedDocumentTypes];
 
     if (!allAllowedTypes.includes(file.mimetype)) {
-      return cb(
-        new Error(
-          `Invalid file type. Allowed types: images, videos, and documents`,
-        ),
-      );
+      return cb(new Error(`Invalid file type. Allowed types: images, videos, and documents`));
     }
 
     cb(null, true);
@@ -217,9 +181,7 @@ export const uploadCommentMedia = multer({
     if (!allowedTypes.includes(file.mimetype)) {
       logger.warn(`Invalid comment media file type uploaded: ${file.mimetype}`);
       return cb(
-        new Error(
-          `Invalid file type. Allowed types: images, videos, audio files, and documents`,
-        ),
+        new Error(`Invalid file type. Allowed types: images, videos, audio files, and documents`),
       );
     }
 
@@ -291,11 +253,7 @@ const messageFileFilter = (
 
   if (!allAllowedTypes.includes(file.mimetype)) {
     logger.warn(`Invalid message file type uploaded: ${file.mimetype}`);
-    return cb(
-      new Error(
-        `Invalid file type. Allowed types: images, videos, audio, documents`,
-      ),
-    );
+    return cb(new Error(`Invalid file type. Allowed types: images, videos, audio, documents`));
   }
 
   // Check specific size limits by type
@@ -342,11 +300,7 @@ export const uploadConversationAvatar = multer({
 /**
  * Validate uploaded files middleware
  */
-export const validateUploadedFiles = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+export const validateUploadedFiles = (req: Request, res: Response, next: NextFunction): void => {
   // Check if files were uploaded when expected
   const file = req.file;
   const files = req.files as Express.Multer.File[];

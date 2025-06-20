@@ -46,10 +46,7 @@ class CloudinaryService {
   /**
    * Upload file buffer to Cloudinary
    */
-  async uploadBuffer(
-    buffer: Buffer,
-    options: UploadOptions,
-  ): Promise<UploadResult> {
+  async uploadBuffer(buffer: Buffer, options: UploadOptions): Promise<UploadResult> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -60,16 +57,15 @@ class CloudinaryService {
           quality: options.quality,
           format: options.format,
           allowed_formats:
-            options.resource_type === 'image'
-              ? ['jpg', 'jpeg', 'png', 'gif', 'webp']
-              : undefined,
+            options.resource_type === 'image' ? ['jpg', 'jpeg', 'png', 'gif', 'webp'] : undefined,
         },
         (error, result) => {
           if (error) {
             logger.error('Cloudinary upload failed:', error);
             reject(error);
           } else if (result) {
-            logger.info(`File uploaded to Cloudinary: ${result.secure_url}`);            resolve({
+            logger.info(`File uploaded to Cloudinary: ${result.secure_url}`);
+            resolve({
               public_id: result.public_id,
               secure_url: result.secure_url,
               width: result.width,
@@ -107,10 +103,7 @@ class CloudinaryService {
   /**
    * Upload user cover image
    */
-  async uploadCoverImage(
-    buffer: Buffer,
-    userId: string,
-  ): Promise<UploadResult> {
+  async uploadCoverImage(buffer: Buffer, userId: string): Promise<UploadResult> {
     return this.uploadBuffer(buffer, {
       folder: 'twilsta/users/covers',
       public_id: `cover_${userId}`,
@@ -133,11 +126,7 @@ class CloudinaryService {
   ): Promise<UploadResult> {
     const transformations =
       mediaType === 'image'
-        ? [
-            { width: 1080, crop: 'limit' },
-            { quality: 'auto:good' },
-            { format: 'webp' },
-          ]
+        ? [{ width: 1080, crop: 'limit' }, { quality: 'auto:good' }, { format: 'webp' }]
         : [{ width: 720, crop: 'limit' }, { quality: 'auto:good' }];
 
     return this.uploadBuffer(buffer, {
@@ -184,10 +173,7 @@ class CloudinaryService {
         logger.info(`File deleted from Cloudinary: ${publicId}`);
         return true;
       } else {
-        logger.warn(
-          `Failed to delete file from Cloudinary: ${publicId}`,
-          result,
-        );
+        logger.warn(`Failed to delete file from Cloudinary: ${publicId}`, result);
         return false;
       }
     } catch (error) {
@@ -209,11 +195,7 @@ class CloudinaryService {
   /**
    * Generate thumbnail URL
    */
-  getThumbnailUrl(
-    publicId: string,
-    width: number = 150,
-    height: number = 150,
-  ): string {
+  getThumbnailUrl(publicId: string, width: number = 150, height: number = 150): string {
     return cloudinary.url(publicId, {
       transformation: [
         { width, height, crop: 'fill' },
@@ -227,10 +209,7 @@ class CloudinaryService {
   /**
    * Clean up old files by prefix
    */
-  async cleanupOldFiles(
-    prefix: string,
-    keepCount: number = 5,
-  ): Promise<number> {
+  async cleanupOldFiles(prefix: string, keepCount: number = 5): Promise<number> {
     try {
       const result = await cloudinary.api.resources({
         type: 'upload',
@@ -244,24 +223,18 @@ class CloudinaryService {
 
       // Sort by created date and delete older files
       const sortedResources = result.resources.sort(
-        (a: any, b: any) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
       const filesToDelete = sortedResources.slice(keepCount);
       let deletedCount = 0;
 
       for (const file of filesToDelete) {
-        const deleted = await this.deleteFile(
-          file.public_id,
-          file.resource_type,
-        );
+        const deleted = await this.deleteFile(file.public_id, file.resource_type);
         if (deleted) deletedCount++;
       }
 
-      logger.info(
-        `Cleaned up ${deletedCount} old files with prefix: ${prefix}`,
-      );
+      logger.info(`Cleaned up ${deletedCount} old files with prefix: ${prefix}`);
       return deletedCount;
     } catch (error) {
       logger.error('Error cleaning up old files:', error);
@@ -286,10 +259,7 @@ class CloudinaryService {
    * Generate upload signature for client-side uploads
    */
   generateSignature(params: any): string {
-    return cloudinary.utils.api_sign_request(
-      params,
-      process.env.CLOUDINARY_API_SECRET!,
-    );
+    return cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!);
   }
 
   /**
@@ -299,9 +269,7 @@ class CloudinaryService {
     try {
       // Extract public ID from Cloudinary URL
       // Example: https://res.cloudinary.com/demo/image/upload/v1234567890/folder/public_id.jpg
-      const matches = url.match(
-        /\/([^\/]+)\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|mp3|wav)$/i,
-      );
+      const matches = url.match(/\/([^\/]+)\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|mp3|wav)$/i);
       if (matches) {
         return matches[1];
       }
@@ -339,8 +307,8 @@ class CloudinaryService {
       transformation: [
         { width: 300, height: 200, crop: 'fill' },
         { quality: 'auto:good' },
-        { format: 'jpg' }
-      ]
+        { format: 'jpg' },
+      ],
     });
   }
 }

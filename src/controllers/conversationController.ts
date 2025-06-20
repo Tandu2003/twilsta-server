@@ -96,8 +96,8 @@ export class ConversationController {
       // Get unread message counts for each conversation
       const conversationsWithUnread = await Promise.all(
         conversations.map(async (conversation) => {
-          const participant = conversation.participants.find(p => p.userId === userId);
-          
+          const participant = conversation.participants.find((p) => p.userId === userId);
+
           const unreadCount = await prisma.conversationMessage.count({
             where: {
               conversationId: conversation.id,
@@ -524,10 +524,7 @@ export class ConversationController {
       }
 
       // Check permissions (admin or if group allows member add)
-      if (
-        participant.role !== 'ADMIN' &&
-        !participant.conversation.allowMemberAdd
-      ) {
+      if (participant.role !== 'ADMIN' && !participant.conversation.allowMemberAdd) {
         unauthorized(res, 'You do not have permission to add participants');
         return;
       }
@@ -546,7 +543,7 @@ export class ConversationController {
         },
       });
 
-      const existingUserIds = existingParticipants.map(p => p.userId);
+      const existingUserIds = existingParticipants.map((p) => p.userId);
       const newParticipantIds = participantIds.filter(
         (id: string) => !existingUserIds.includes(id),
       );
@@ -732,9 +729,7 @@ export class ConversationController {
         realtimeService.broadcastConversationUpdate(updatedConversation);
       }
 
-      logger.info(
-        `Participant removed from conversation: ${conversationId} by user: ${userId}`,
-      );
+      logger.info(`Participant removed from conversation: ${conversationId} by user: ${userId}`);
       success(res, updatedConversation, 'Participant removed successfully');
     } catch (error) {
       logger.error('Error removing participant:', error);
@@ -823,7 +818,7 @@ export class ConversationController {
 
       // Collect all media URLs for cleanup
       const mediaUrls: string[] = [];
-      
+
       // Add conversation avatar
       if (conversation.avatar) {
         mediaUrls.push(conversation.avatar);

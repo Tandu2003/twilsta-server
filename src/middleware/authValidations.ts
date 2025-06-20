@@ -10,10 +10,7 @@ export const registerValidation = [
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username can only contain letters, numbers, and underscores'),
 
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+  body('email').isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
 
   body('password')
     .isLength({ min: 8 })
@@ -49,20 +46,14 @@ export const verifyEmailValidation = [
  * Validation for resend verification email
  */
 export const resendVerificationValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+  body('email').isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
 ];
 
 /**
  * Validation for password reset request
  */
 export const requestPasswordResetValidation = [
-  body('email')
-    .isEmail()
-    .withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+  body('email').isEmail().withMessage('Please provide a valid email address').normalizeEmail(),
 ];
 
 /**
@@ -84,9 +75,7 @@ export const resetPasswordValidation = [
  * Validation for change password (when authenticated)
  */
 export const changePasswordValidation = [
-  body('currentPassword')
-    .notEmpty()
-    .withMessage('Current password is required'),
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
 
   body('newPassword')
     .isLength({ min: 8 })
@@ -118,18 +107,12 @@ export const updateProfileValidation = [
     .isLength({ max: 160 })
     .withMessage('Bio must be no more than 160 characters'),
 
-  body('website')
-    .optional()
-    .isURL()
-    .withMessage('Please provide a valid website URL'),
+  body('website').optional().isURL().withMessage('Please provide a valid website URL'),
 
   body('location')
     .optional()
     .isLength({ max: 30 })
     .withMessage('Location must be no more than 30 characters'),
 
-  body('isPrivate')
-    .optional()
-    .isBoolean()
-    .withMessage('isPrivate must be a boolean value'),
+  body('isPrivate').optional().isBoolean().withMessage('isPrivate must be a boolean value'),
 ];

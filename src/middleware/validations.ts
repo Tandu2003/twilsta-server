@@ -5,11 +5,7 @@ import { validationError } from '../utils/responseHelper';
 /**
  * Middleware to handle validation errors
  */
-export const validateRequest = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void => {
+export const validateRequest = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -69,10 +65,7 @@ export const commonValidations = {
     .withMessage('Bio must not exceed 500 characters'),
 
   // Website URL validation
-  website: body('website')
-    .optional()
-    .isURL()
-    .withMessage('Please provide a valid website URL'),
+  website: body('website').optional().isURL().withMessage('Please provide a valid website URL'),
 
   // Location validation
   location: body('location')
@@ -82,10 +75,7 @@ export const commonValidations = {
     .withMessage('Location must not exceed 100 characters'),
 
   // Image URL validation (for avatar, coverImage, etc.)
-  avatarUrl: body('avatar')
-    .optional()
-    .isURL()
-    .withMessage('Avatar must be a valid URL'),
+  avatarUrl: body('avatar').optional().isURL().withMessage('Avatar must be a valid URL'),
 
   coverImageUrl: body('coverImage')
     .optional()
@@ -93,10 +83,7 @@ export const commonValidations = {
     .withMessage('Cover image must be a valid URL'),
 
   // Pagination
-  page: query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
+  page: query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
 
   limit: query('limit')
     .optional()
@@ -140,17 +127,12 @@ export const userValidations = {
     commonValidations.location,
     commonValidations.avatarUrl,
     commonValidations.coverImageUrl,
-    body('isPrivate')
-      .optional()
-      .isBoolean()
-      .withMessage('isPrivate must be a boolean'),
+    body('isPrivate').optional().isBoolean().withMessage('isPrivate must be a boolean'),
   ],
 
   // Change password
   changePassword: [
-    body('currentPassword')
-      .notEmpty()
-      .withMessage('Current password is required'),
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
     commonValidations.password,
   ],
 
@@ -180,25 +162,11 @@ export const postValidations = {
     body('type')
       .optional()
       .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'MIXED'])
-      .withMessage(
-        'Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED',
-      ),
-    body('images')
-      .optional()
-      .isArray({ max: 10 })
-      .withMessage('Maximum 10 images allowed'),
-    body('images.*')
-      .optional()
-      .isURL()
-      .withMessage('Each image must be a valid URL'),
-    body('videos')
-      .optional()
-      .isArray({ max: 5 })
-      .withMessage('Maximum 5 videos allowed'),
-    body('videos.*')
-      .optional()
-      .isURL()
-      .withMessage('Each video must be a valid URL'),
+      .withMessage('Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED'),
+    body('images').optional().isArray({ max: 10 }).withMessage('Maximum 10 images allowed'),
+    body('images.*').optional().isURL().withMessage('Each image must be a valid URL'),
+    body('videos').optional().isArray({ max: 5 }).withMessage('Maximum 5 videos allowed'),
+    body('videos.*').optional().isURL().withMessage('Each video must be a valid URL'),
     body('audioUrl').optional().isURL().withMessage('Audio URL must be valid'),
     body('parentId')
       .optional()
@@ -210,14 +178,8 @@ export const postValidations = {
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Reply to ID must be a valid CUID'),
-    body('isPublic')
-      .optional()
-      .isBoolean()
-      .withMessage('isPublic must be a boolean'),
-    body('allowReplies')
-      .optional()
-      .isBoolean()
-      .withMessage('allowReplies must be a boolean'),
+    body('isPublic').optional().isBoolean().withMessage('isPublic must be a boolean'),
+    body('allowReplies').optional().isBoolean().withMessage('allowReplies must be a boolean'),
   ],
 
   // Update post
@@ -228,14 +190,8 @@ export const postValidations = {
       .trim()
       .isLength({ max: 2000 })
       .withMessage('Post content must not exceed 2000 characters'),
-    body('isPublic')
-      .optional()
-      .isBoolean()
-      .withMessage('isPublic must be a boolean'),
-    body('allowReplies')
-      .optional()
-      .isBoolean()
-      .withMessage('allowReplies must be a boolean'),
+    body('isPublic').optional().isBoolean().withMessage('isPublic must be a boolean'),
+    body('allowReplies').optional().isBoolean().withMessage('allowReplies must be a boolean'),
   ],
 
   // Get posts with filters
@@ -245,9 +201,7 @@ export const postValidations = {
     query('type')
       .optional()
       .isIn(['TEXT', 'IMAGE', 'VIDEO', 'AUDIO', 'MIXED'])
-      .withMessage(
-        'Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED',
-      ),
+      .withMessage('Post type must be one of: TEXT, IMAGE, VIDEO, AUDIO, MIXED'),
     query('authorId')
       .optional()
       .isLength({ min: 25, max: 25 })
@@ -262,9 +216,7 @@ export const postValidations = {
 
   // Remove media from post
   removeMedia: [
-    body('mediaUrls')
-      .isArray({ min: 1 })
-      .withMessage('At least one media URL must be provided'),
+    body('mediaUrls').isArray({ min: 1 }).withMessage('At least one media URL must be provided'),
     body('mediaUrls.*').isURL().withMessage('Each media URL must be valid'),
     body('mediaType')
       .isIn(['image', 'video', 'audio'])
@@ -324,9 +276,7 @@ export const commentValidations = {
   // Remove media from comment
   removeMedia: [
     commonValidations.id,
-    body('mediaUrls')
-      .isArray({ min: 1 })
-      .withMessage('At least one media URL must be provided'),
+    body('mediaUrls').isArray({ min: 1 }).withMessage('At least one media URL must be provided'),
     body('mediaUrls.*').isURL().withMessage('Each media URL must be valid'),
     body('mediaType')
       .isIn(['image', 'video', 'audio', 'document'])
@@ -394,7 +344,8 @@ export const messageValidations = {
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Message ID must be a valid CUID'),
-  ],  getMessages: [
+  ],
+  getMessages: [
     param('conversationId')
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
@@ -441,7 +392,8 @@ export const reportValidations = {
       .optional()
       .trim()
       .isLength({ max: 1000 })
-      .withMessage('Description must not exceed 1000 characters'),  ],
+      .withMessage('Description must not exceed 1000 characters'),
+  ],
 };
 
 /**
@@ -525,9 +477,7 @@ export const conversationValidations = {
       .isLength({ min: 25, max: 25 })
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('User ID must be a valid CUID'),
-    body('role')
-      .isIn(['MEMBER', 'ADMIN'])
-      .withMessage('Role must be MEMBER or ADMIN'),
+    body('role').isIn(['MEMBER', 'ADMIN']).withMessage('Role must be MEMBER or ADMIN'),
   ],
   leaveConversation: [
     param('conversationId')
@@ -541,10 +491,7 @@ export const conversationValidations = {
       .matches(/^c[a-z0-9]{24}$/)
       .withMessage('Conversation ID must be a valid CUID'),
   ],
-  getConversations: [
-    commonValidations.page,
-    commonValidations.limit,
-  ],
+  getConversations: [commonValidations.page, commonValidations.limit],
 };
 
 /**
@@ -552,10 +499,6 @@ export const conversationValidations = {
  */
 export const crudValidations = {
   getById: [commonValidations.id],
-  pagination: [
-    commonValidations.page,
-    commonValidations.limit,
-    commonValidations.search,
-  ],
+  pagination: [commonValidations.page, commonValidations.limit, commonValidations.search],
   deleteById: [commonValidations.id],
 };
