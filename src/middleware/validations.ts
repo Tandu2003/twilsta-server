@@ -4,16 +4,55 @@ import { validationError } from '../utils/responseHelper';
 
 /**
  * Middleware to handle validation errors
+ * This middleware should be used after express-validator validation rules
+ * It will return validation errors immediately and not proceed to controller
  */
 export const validateRequest = (req: Request, res: Response, next: NextFunction): void => {
-  const errors = validationResult(req);
+  try {
+    const errors = validationResult(req);
 
-  if (!errors.isEmpty()) {
-    validationError(res, errors.array(), 'Validation failed');
+    if (!errors.isEmpty()) {
+      // Format errors for better readability
+      const formattedErrors = errors.array().map((error: any) => ({
+        field: error.path || error.param,
+        message: error.msg,
+        value: error.value,
+        location: error.location,
+      }));
+
+      // Create meaningful error message from first error or general message
+      const firstError = formattedErrors[0];
+      const errorMessage = firstError ? firstError.message : 'Invalid input data';
+
+      // Log validation errors for debugging
+      console.log('🔍 Validation errors:', formattedErrors);
+
+      // Return validation error response immediately - DO NOT call next()
+      res.status(422).json({
+        success: false,
+        message: errorMessage,
+        errors: formattedErrors,
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+      return; // Important: return here to stop execution
+    }
+
+    // Only call next() if validation passes
+    next();
+  } catch (error) {
+    // If validation middleware itself fails, return 500
+    console.error('❌ Error in validation middleware:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal validation error',
+      meta: {
+        timestamp: new Date().toISOString(),
+      },
+    });
     return;
   }
-
-  next();
 };
 
 /**

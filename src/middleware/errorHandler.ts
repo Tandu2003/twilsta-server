@@ -6,27 +6,31 @@ import { AppError, ValidationError } from '../utils/errors';
 
 /**
  * Global error handling middleware
+ * This should only handle errors that are NOT already handled by other middleware
  */
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction): void => {
   try {
+    // Check if response has already been sent
+    if (res.headersSent) {
+      logger.warn('Headers already sent, cannot send error response');
+      return;
+    }
+
     let error = { ...err };
-    error.message = err.message;
+    error.message = err.message || 'Unknown error';
 
     // Log error with additional request information
-    logger.error('Error occurred:', {
-      error: err,
+    logger.error('🔥 Unhandled error occurred:', {
+      message: err.message,
+      name: err.name,
+      code: err.code,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
       url: req.url,
       method: req.method,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       timestamp: new Date().toISOString(),
     });
-
-    // Check if response has already been sent
-    if (res.headersSent) {
-      logger.warn('Headers already sent, cannot send error response');
-      return;
-    }
 
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
@@ -87,26 +91,41 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     }
 
     // Default to 500 server error
-    ResponseHelper.internalError(
-      res,
-      process.env.NODE_ENV === 'production' ? 'Something went wrong!' : error.message,
-      process.env.NODE_ENV === 'production' ? undefined : error,
-    );
+    if (!res.headersSent) {
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : error.message,
+        error:
+          process.env.NODE_ENV === 'development'
+            ? {
+                name: error.name,
+                code: error.code,
+                stack: error.stack,
+              }
+            : undefined,
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
   } catch (handlerError) {
     // If error handler itself fails, log it and send a basic response
-    logger.error('Error in error handler:', handlerError);
+    logger.error('❌ Critical error in error handler:', handlerError);
 
     // Try to send a basic error response if possible
     try {
       if (!res.headersSent) {
         res.status(500).json({
           success: false,
-          message: 'Internal server error',
-          timestamp: new Date().toISOString(),
+          message: 'Critical server error',
+          meta: {
+            timestamp: new Date().toISOString(),
+          },
         });
       }
     } catch (responseError) {
-      logger.error('Failed to send error response:', responseError);
+      logger.error('❌ Failed to send error response:', responseError);
+      // At this point, we can't do anything more
     }
   }
 };

@@ -70,11 +70,31 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (existingUser) {
       if (existingUser.email === email) {
-        badRequest(res, 'Email already registered');
+        res.status(409).json({
+          success: false,
+          message: 'Email already registered',
+          error: {
+            field: 'email',
+            value: email,
+          },
+          meta: {
+            timestamp: new Date().toISOString(),
+          },
+        });
         return;
       }
       if (existingUser.username === username) {
-        badRequest(res, 'Username already taken');
+        res.status(409).json({
+          success: false,
+          message: 'Username already taken',
+          error: {
+            field: 'username',
+            value: username,
+          },
+          meta: {
+            timestamp: new Date().toISOString(),
+          },
+        });
         return;
       }
     }
@@ -130,9 +150,57 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       logger.error('Error sending response:', responseError);
       throw responseError;
     }
-  } catch (error) {
-    logger.error('Registration failed:', error);
-    internalError(res, 'Registration failed');
+  } catch (error: any) {
+    logger.error('Registration failed:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    });
+
+    // Handle specific Prisma errors
+    if (error.code === 'P2002') {
+      // Unique constraint violation
+      const field = error.meta?.target?.[0] || 'field';
+      res.status(409).json({
+        success: false,
+        message: `${field === 'email' ? 'Email' : 'Username'} already exists`,
+        error: {
+          field: field,
+          code: 'DUPLICATE_ENTRY',
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+      return;
+    }
+
+    // Handle other database errors
+    if (error.code?.startsWith('P')) {
+      res.status(500).json({
+        success: false,
+        message: 'Database error occurred',
+        error: {
+          code: error.code,
+        },
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+      return;
+    }
+
+    // Generic error
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed',
+      error: {
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      },
+      meta: {
+        timestamp: new Date().toISOString(),
+      },
+    });
   }
 };
 
