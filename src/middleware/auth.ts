@@ -24,17 +24,17 @@ export const authenticateToken = async (
   try {
     let accessToken: string | undefined;
 
-    // Try to get token from Authorization header first (for API requests)
+    // Primary: Get token from Authorization header (preferred method)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-    } else {
-      // Fallback to cookie-based auth (for web requests)
-      accessToken = req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
     }
 
     if (!accessToken) {
-      unauthorized(res, 'Access token not found. Please log in to access this resource');
+      unauthorized(
+        res,
+        'Access token required. Please provide a valid Bearer token in Authorization header.',
+      );
       return;
     }
 
@@ -87,9 +87,10 @@ export const optionalAuth = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const accessToken = req.cookies[process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken'];
-
-    if (accessToken) {
+    // Get token from Authorization header only
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const accessToken = authHeader.substring(7);
       const payload = jwtService.verifyAccessToken(accessToken);
       if (payload) {
         req.user = payload;

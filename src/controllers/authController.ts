@@ -20,37 +20,25 @@ const prisma = new PrismaClient();
 /**
  * Helper function to set auth cookies
  */
-const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
+const setRefreshTokenCookie = (res: Response, refreshToken: string) => {
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // Set access token cookie
-  res.cookie(process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken', accessToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
-    maxAge: 15 * 60 * 1000, // 15 minutes
-    path: '/',
-  });
-
-  // Set refresh token cookie
+  // Only set refresh token in httpOnly cookie (access token will be returned in response)
   res.cookie(process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'strict' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: '/auth',
+    path: '/',
   });
 };
 
 /**
- * Helper function to clear auth cookies
+ * Helper function to clear refresh token cookie
  */
-const clearAuthCookies = (res: Response) => {
-  res.clearCookie(process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken', {
-    path: '/',
-  });
+const clearRefreshTokenCookie = (res: Response) => {
   res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken', {
-    path: '/auth',
+    path: '/',
   });
 };
 
@@ -232,15 +220,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Generate tokens
+    // Generate tokens (jwtService automatically stores refresh token in database)
     const { accessToken, refreshToken } = await jwtService.generateTokenPair(
       user,
       userAgent,
       ipAddress,
     );
 
-    // Set cookies
-    setAuthCookies(res, accessToken, refreshToken);
+    // Set refresh token in httpOnly cookie
+    setRefreshTokenCookie(res, refreshToken);
 
     logger.info(`User logged in: ${user.username} (${user.email})`);
 
@@ -255,6 +243,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           verified: user.verified,
           avatar: user.avatar,
         },
+        accessToken, // Return access token in response body
         requiresVerification: !user.verified,
       },
       'Login successful',
@@ -273,19 +262,19 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     const refreshToken = req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
 
     if (refreshToken) {
-      // Revoke refresh token
+      // Revoke refresh token (jwtService.revokeRefreshToken already deletes from database)
       await jwtService.revokeRefreshToken(refreshToken);
     }
 
-    // Clear cookies
-    clearAuthCookies(res);
+    // Clear refresh token cookie
+    clearRefreshTokenCookie(res);
 
     logger.info(`User logged out`);
     success(res, null, 'Logout successful');
   } catch (error) {
     logger.error('Logout failed:', error);
     // Still clear cookies even if database operation fails
-    clearAuthCookies(res);
+    clearRefreshTokenCookie(res);
     success(res, null, 'Logout successful');
   }
 };
@@ -304,16 +293,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Set new access token cookie
-    const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie(process.env.ACCESS_TOKEN_COOKIE_NAME || 'accessToken', result.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: '/',
-    });
-
+    // Return new access token in response (not cookie)
     success(
       res,
       {
@@ -325,6 +305,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
           verified: result.user.verified,
           avatar: result.user.avatar,
         },
+        accessToken: result.accessToken, // Return access token in response body
       },
       'Token refreshed successfully',
     );
@@ -618,5 +599,47 @@ export const updateLastActive = async (req: Request, res: Response): Promise<voi
   } catch (error) {
     logger.error('Update last active failed:', error);
     internalError(res, 'Failed to update last active time');
+  }
+};
+
+/**
+ * Get user's active refresh tokens (for security monitoring)
+ */
+export const getActiveTokens = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      unauthorized(res, 'Authentication required');
+      return;
+    }
+
+    const activeTokens = await jwtService.getUserRefreshTokens(req.user.userId);
+
+    success(res, { activeTokens }, 'Active tokens retrieved');
+  } catch (error) {
+    logger.error('Get active tokens failed:', error);
+    internalError(res, 'Failed to get active tokens');
+  }
+};
+
+/**
+ * Revoke all refresh tokens (logout from all devices)
+ */
+export const logoutAllDevices = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      unauthorized(res, 'Authentication required');
+      return;
+    }
+
+    await jwtService.revokeAllRefreshTokens(req.user.userId);
+
+    // Clear current refresh token cookie
+    clearRefreshTokenCookie(res);
+
+    logger.info(`User logged out from all devices: ${req.user.userId}`);
+    success(res, null, 'Logged out from all devices');
+  } catch (error) {
+    logger.error('Logout all devices failed:', error);
+    internalError(res, 'Failed to logout from all devices');
   }
 };

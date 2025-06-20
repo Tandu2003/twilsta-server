@@ -10,6 +10,8 @@ import {
   resetPassword,
   getCurrentUser,
   updateLastActive,
+  getActiveTokens,
+  logoutAllDevices,
 } from '../controllers/authController';
 import {
   registerValidation,
@@ -53,5 +55,9 @@ router.post('/refresh', validateRefreshToken, refreshToken);
 // Protected routes
 router.get('/me', authenticateToken, getCurrentUser);
 router.post('/update-activity', authenticateToken, updateLastActive);
+
+// Security & token management
+router.get('/active-tokens', authenticateToken, getActiveTokens);
+router.post('/logout-all', authenticateToken, logoutAllDevices);
 
 export default router;

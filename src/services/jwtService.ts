@@ -183,11 +183,14 @@ class JWTService {
       verified: user.verified,
     });
 
-    // Optionally rotate refresh token (recommended for security)
-    // For now, we'll keep the same refresh token but update its last used time
+    // Extend refresh token expiry time and update last used time
+    const newExpiresAt = new Date(Date.now() + this.parseExpiry(this.refreshTokenExpiry));
     await prisma.refreshToken.update({
       where: { token: refreshToken },
-      data: { updatedAt: new Date() },
+      data: {
+        updatedAt: new Date(),
+        expiresAt: newExpiresAt,
+      },
     });
 
     logger.info(`Refreshed access token for user: ${user.id}`);
