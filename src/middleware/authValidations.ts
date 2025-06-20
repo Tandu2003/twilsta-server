@@ -21,7 +21,6 @@ export const registerValidation = [
     ),
 
   body('displayName')
-    .optional()
     .isLength({ min: 1, max: 50 })
     .withMessage('Display name must be between 1 and 50 characters'),
 ];

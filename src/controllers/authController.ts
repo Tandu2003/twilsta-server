@@ -79,7 +79,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         username,
         email,
         password: hashedPassword,
-        displayName: displayName || username,
+        displayName,
         emailVerificationToken: verificationToken,
         emailVerificationExpires: verificationExpires,
       },
