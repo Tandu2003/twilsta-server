@@ -8,6 +8,8 @@
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
     "dev:watch": "nodemon --exec ts-node src/server.ts",
+    "dev:safe": "node start-server.js",
+    "start:safe": "node start-server.js",
     "prisma": "prisma generate && prisma db push",
     "prisma:db": "prisma db push",
     "prisma:generate": "prisma generate",

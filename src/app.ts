@@ -8,17 +8,17 @@ import logger from './utils/logger';
 import { ResponseHelper } from './utils/responseHelper';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger, customRequestLogger } from './middleware/logging';
-import {
-  securityHeaders,
-  generalLimiter,
-  requestSizeLimiter,
-} from './middleware/security';
+import { securityHeaders, generalLimiter, requestSizeLimiter } from './middleware/security';
+import { PrismaClient } from '@prisma/client';
 
 // Load environment variables
 dotenv.config();
 
 // Create Express application
 const app: Application = express();
+
+// Create Prisma client for health checks
+const prisma = new PrismaClient();
 
 // Security middleware
 app.use(securityHeaders);
@@ -55,20 +55,68 @@ app.use(
 // API Routes
 app.use('/api', apiRoutes);
 
-// Health check route
-app.get('/health', (req: Request, res: Response) => {
-  logger.info('Health check requested');
-  ResponseHelper.success(
-    res,
-    {
+// Enhanced health check route
+app.get('/health', async (req: Request, res: Response) => {
+  try {
+    logger.info('Health check requested');
+
+    const healthData: any = {
       status: 'OK',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || 'development',
       version: process.env.npm_package_version || '1.0.0',
-    },
-    'Server is healthy',
-  );
+      server: {
+        memory: process.memoryUsage(),
+        cpu: process.cpuUsage(),
+        pid: process.pid,
+      },
+    };
+
+    // Check database connection
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      healthData.database = {
+        status: 'connected',
+        type: 'PostgreSQL',
+      };
+    } catch (dbError) {
+      logger.warn('Database health check failed:', dbError);
+      healthData.database = {
+        status: 'disconnected',
+        type: 'PostgreSQL',
+        error: process.env.NODE_ENV === 'production' ? 'Connection failed' : String(dbError),
+      };
+      // Server is still healthy even if DB is down
+      healthData.status = 'DEGRADED';
+    }
+
+    ResponseHelper.success(res, healthData, 'Server health check completed');
+  } catch (error) {
+    logger.error('Health check error:', error);
+    ResponseHelper.error(res, 'Health check failed', 503);
+  }
+});
+
+// Server status endpoint
+app.get('/status', (req: Request, res: Response) => {
+  try {
+    const status = {
+      server: 'running',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: process.env.npm_package_version || '1.0.0',
+    };
+
+    res.json(status);
+  } catch (error) {
+    logger.error('Status check error:', error);
+    res.status(500).json({
+      server: 'error',
+      timestamp: new Date().toISOString(),
+      error: process.env.NODE_ENV === 'production' ? 'Status check failed' : String(error),
+    });
+  }
 });
 
 // 404 handler

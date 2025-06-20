@@ -1,9 +1,19 @@
 {
   "watch": ["src"],
   "ext": "ts,json",
-  "ignore": ["src/**/*.spec.ts", "src/**/*.test.ts"],
+  "ignore": ["src/**/*.spec.ts", "src/**/*.test.ts", "logs/**/*"],
   "exec": "ts-node src/server.ts",
+  "restartable": "rs",
+  "delay": 1000,
+  "verbose": true,
+  "legacyWatch": false,
   "env": {
     "NODE_ENV": "development"
-  }
+  },
+  "events": {
+    "restart": "echo '🔄 Server restarting due to file changes...'",
+    "crash": "echo '💥 Server crashed, restarting in 2 seconds...' && sleep 2"
+  },
+  "signal": "SIGTERM",
+  "colours": true
 }
