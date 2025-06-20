@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwtService, { JWTPayload } from '../services/jwtService';
-import { forbidden, internalError, unauthorized } from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 
 // Extend Request interface to include user
@@ -25,7 +25,7 @@ export const authenticateToken = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      unauthorized(
+      ResponseHelper.unauthorized(
         res,
         'Access token required. Please provide a valid Bearer token in Authorization header.',
       );
@@ -36,7 +36,10 @@ export const authenticateToken = async (
     const payload = jwtService.verifyAccessToken(accessToken);
 
     if (!payload) {
-      unauthorized(res, 'Invalid or expired access token. Please refresh your session.');
+      ResponseHelper.unauthorized(
+        res,
+        'Invalid or expired access token. Please refresh your session.',
+      );
       return;
     }
 
@@ -46,7 +49,7 @@ export const authenticateToken = async (
   } catch (error) {
     logger.error('Token authentication failed:', error);
     if (!res.headersSent) {
-      internalError(res, 'Authentication failed');
+      ResponseHelper.internalError(res, 'Authentication failed');
     }
     return;
   }
@@ -57,12 +60,12 @@ export const authenticateToken = async (
  */
 export const requireVerification = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {
-    unauthorized(res, 'Authentication required');
+    ResponseHelper.unauthorized(res, 'Authentication required');
     return;
   }
 
   if (!req.user.verified) {
-    forbidden(
+    ResponseHelper.forbidden(
       res,
       'Email verification required. Please verify your email address to access this resource',
     );
@@ -111,14 +114,17 @@ export const validateRefreshToken = async (
     const refreshToken = req.cookies[process.env.REFRESH_TOKEN_COOKIE_NAME || 'refreshToken'];
 
     if (!refreshToken) {
-      unauthorized(res, 'Refresh token not found. Please log in again');
+      ResponseHelper.unauthorized(res, 'Refresh token not found. Please log in again');
       return;
     }
 
     const verification = await jwtService.verifyRefreshToken(refreshToken);
 
     if (!verification.valid) {
-      unauthorized(res, 'Invalid or expired refresh token. Session expired. Please log in again.');
+      ResponseHelper.unauthorized(
+        res,
+        'Invalid or expired refresh token. Session expired. Please log in again.',
+      );
       return;
     }
 
@@ -127,7 +133,7 @@ export const validateRefreshToken = async (
     next();
   } catch (error) {
     logger.error('Refresh token validation failed:', error);
-    internalError(res, 'Token validation failed');
+    ResponseHelper.internalError(res, 'Token validation failed');
     return; // Important: return here to stop execution
   }
 };

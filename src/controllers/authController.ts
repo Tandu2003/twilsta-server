@@ -2,16 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaClient } from '@prisma/client';
-import {
-  success,
-  unauthorized,
-  forbidden,
-  internalError,
-  badRequest,
-  notFound,
-  conflict,
-  created,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import jwtService from '../services/jwtService';
 import emailService from '../services/emailService';
@@ -59,14 +50,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (existingUser) {
       if (existingUser.email === email) {
-        conflict(res, 'Email already registered', {
+        ResponseHelper.conflict(res, 'Email already registered', {
           field: 'email',
           value: email,
         });
         return;
       }
       if (existingUser.username === username) {
-        conflict(res, 'Username already taken', {
+        ResponseHelper.conflict(res, 'Username already taken', {
           field: 'username',
           value: username,
         });
@@ -115,7 +106,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     logger.debug('About to send created response...');
 
     try {
-      created(
+      ResponseHelper.created(
         res,
         { user },
         'Registration successful. Please check your email for verification instructions.',
@@ -136,7 +127,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     if (error.code === 'P2002') {
       // Unique constraint violation
       const field = error.meta?.target?.[0] || 'field';
-      conflict(res, `${field === 'email' ? 'Email' : 'Username'} already exists`, {
+      ResponseHelper.conflict(res, `${field === 'email' ? 'Email' : 'Username'} already exists`, {
         field: field,
         code: 'DUPLICATE_ENTRY',
       });
@@ -145,14 +136,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Handle other database errors
     if (error.code?.startsWith('P')) {
-      internalError(res, 'Database error occurred', {
+      ResponseHelper.internalError(res, 'Database error occurred', {
         code: error.code,
       });
       return;
     }
 
     // Generic error
-    internalError(res, 'Registration failed', {
+    ResponseHelper.internalError(res, 'Registration failed', {
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
     });
   }
@@ -175,20 +166,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      unauthorized(res, 'Invalid credentials');
+      ResponseHelper.unauthorized(res, 'Invalid credentials');
       return;
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      unauthorized(res, 'Invalid credentials');
+      ResponseHelper.unauthorized(res, 'Invalid credentials');
       return;
     }
 
     // Check if email is verified - REQUIRED for login
     if (!user.verified) {
-      forbidden(res, 'Email verification required. Please verify your email before logging in.');
+      ResponseHelper.forbidden(
+        res,
+        'Email verification required. Please verify your email before logging in.',
+      );
       return;
     }
 
@@ -204,7 +198,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     logger.info(`User logged in: ${user.username} (${user.email})`);
 
-    success(
+    ResponseHelper.success(
       res,
       {
         user: {
@@ -221,7 +215,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     );
   } catch (error) {
     logger.error('Login failed:', error);
-    internalError(res, 'Login failed');
+    ResponseHelper.internalError(res, 'Login failed');
   }
 };
 
@@ -241,12 +235,12 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
     clearRefreshTokenCookie(res);
 
     logger.info(`User logged out`);
-    success(res, null, 'Logout successful');
+    ResponseHelper.success(res, null, 'Logout successful');
   } catch (error) {
     logger.error('Logout failed:', error);
     // Still clear cookies even if database operation fails
     clearRefreshTokenCookie(res);
-    success(res, null, 'Logout successful');
+    ResponseHelper.success(res, null, 'Logout successful');
   }
 };
 
@@ -260,12 +254,12 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const result = await jwtService.refreshAccessToken(refreshToken);
 
     if (!result.success) {
-      unauthorized(res, 'Invalid refresh token');
+      ResponseHelper.unauthorized(res, 'Invalid refresh token');
       return;
     }
 
     // Return new access token in response (not cookie)
-    success(
+    ResponseHelper.success(
       res,
       {
         user: {
@@ -282,7 +276,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     );
   } catch (error) {
     logger.error('Token refresh failed:', error);
-    internalError(res, 'Token refresh failed');
+    ResponseHelper.internalError(res, 'Token refresh failed');
   }
 };
 
@@ -299,17 +293,17 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     });
 
     if (!verification) {
-      badRequest(res, 'Invalid verification token');
+      ResponseHelper.badRequest(res, 'Invalid verification token');
       return;
     }
 
     if (verification.used) {
-      badRequest(res, 'Verification token already used');
+      ResponseHelper.badRequest(res, 'Verification token already used');
       return;
     }
 
     if (verification.expiresAt < new Date()) {
-      badRequest(res, 'Verification token expired');
+      ResponseHelper.badRequest(res, 'Verification token expired');
       return;
     }
 
@@ -330,10 +324,10 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     ]);
 
     logger.info(`Email verified: ${verification.email}`);
-    success(res, null, 'Email verified successfully');
+    ResponseHelper.success(res, null, 'Email verified successfully');
   } catch (error) {
     logger.error('Email verification failed:', error);
-    internalError(res, 'Email verification failed');
+    ResponseHelper.internalError(res, 'Email verification failed');
   }
 };
 
@@ -349,12 +343,12 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
     });
 
     if (!user) {
-      notFound(res, 'User not found');
+      ResponseHelper.notFound(res, 'User not found');
       return;
     }
 
     if (user.verified) {
-      badRequest(res, 'Email already verified');
+      ResponseHelper.badRequest(res, 'Email already verified');
       return;
     }
 
@@ -384,10 +378,10 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
     await emailService.sendVerificationEmail(email, verificationToken, user.username);
 
     logger.info(`Verification email resent to: ${email}`);
-    success(res, null, 'Verification email sent');
+    ResponseHelper.success(res, null, 'Verification email sent');
   } catch (error) {
     logger.error('Resend verification failed:', error);
-    internalError(res, 'Failed to send verification email');
+    ResponseHelper.internalError(res, 'Failed to send verification email');
   }
 };
 
@@ -404,7 +398,7 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
 
     if (!user) {
       // Don't reveal if email exists
-      success(res, null, 'If the email exists, a password reset link has been sent');
+      ResponseHelper.success(res, null, 'If the email exists, a password reset link has been sent');
       return;
     }
 
@@ -434,10 +428,10 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
     await emailService.sendPasswordResetEmail(email, resetToken, user.username);
 
     logger.info(`Password reset requested for: ${email}`);
-    success(res, null, 'If the email exists, a password reset link has been sent');
+    ResponseHelper.success(res, null, 'If the email exists, a password reset link has been sent');
   } catch (error) {
     logger.error('Password reset request failed:', error);
-    internalError(res, 'Password reset request failed');
+    ResponseHelper.internalError(res, 'Password reset request failed');
   }
 };
 
@@ -455,17 +449,17 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     });
 
     if (!resetRecord) {
-      badRequest(res, 'Invalid reset token');
+      ResponseHelper.badRequest(res, 'Invalid reset token');
       return;
     }
 
     if (resetRecord.used) {
-      badRequest(res, 'Reset token already used');
+      ResponseHelper.badRequest(res, 'Reset token already used');
       return;
     }
 
     if (resetRecord.expiresAt < new Date()) {
-      badRequest(res, 'Reset token expired');
+      ResponseHelper.badRequest(res, 'Reset token expired');
       return;
     }
 
@@ -500,10 +494,10 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     }
 
     logger.info(`Password reset completed for: ${resetRecord.email}`);
-    success(res, null, 'Password reset successful');
+    ResponseHelper.success(res, null, 'Password reset successful');
   } catch (error) {
     logger.error('Password reset failed:', error);
-    internalError(res, 'Password reset failed');
+    ResponseHelper.internalError(res, 'Password reset failed');
   }
 };
 
@@ -513,7 +507,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      unauthorized(res, 'Authentication required');
+      ResponseHelper.unauthorized(res, 'Authentication required');
       return;
     }
 
@@ -540,14 +534,14 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
     });
 
     if (!user) {
-      notFound(res, 'User not found');
+      ResponseHelper.notFound(res, 'User not found');
       return;
     }
 
-    success(res, { user }, 'User information retrieved successfully');
+    ResponseHelper.success(res, { user }, 'User information retrieved successfully');
   } catch (error) {
     logger.error('Get current user failed:', error);
-    internalError(res, 'Failed to retrieve user information');
+    ResponseHelper.internalError(res, 'Failed to retrieve user information');
   }
 };
 
@@ -557,7 +551,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
 export const updateLastActive = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      unauthorized(res, 'Authentication required');
+      ResponseHelper.unauthorized(res, 'Authentication required');
       return;
     }
 
@@ -566,10 +560,10 @@ export const updateLastActive = async (req: Request, res: Response): Promise<voi
       data: { lastActiveAt: new Date() },
     });
 
-    success(res, null, 'Last active time updated');
+    ResponseHelper.success(res, null, 'Last active time updated');
   } catch (error) {
     logger.error('Update last active failed:', error);
-    internalError(res, 'Failed to update last active time');
+    ResponseHelper.internalError(res, 'Failed to update last active time');
   }
 };
 
@@ -579,16 +573,16 @@ export const updateLastActive = async (req: Request, res: Response): Promise<voi
 export const getActiveTokens = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      unauthorized(res, 'Authentication required');
+      ResponseHelper.unauthorized(res, 'Authentication required');
       return;
     }
 
     const activeTokens = await jwtService.getUserRefreshTokens(req.user.userId);
 
-    success(res, { activeTokens }, 'Active tokens retrieved');
+    ResponseHelper.success(res, { activeTokens }, 'Active tokens retrieved');
   } catch (error) {
     logger.error('Get active tokens failed:', error);
-    internalError(res, 'Failed to get active tokens');
+    ResponseHelper.internalError(res, 'Failed to get active tokens');
   }
 };
 
@@ -598,7 +592,7 @@ export const getActiveTokens = async (req: Request, res: Response): Promise<void
 export const logoutAllDevices = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      unauthorized(res, 'Authentication required');
+      ResponseHelper.unauthorized(res, 'Authentication required');
       return;
     }
 
@@ -608,9 +602,9 @@ export const logoutAllDevices = async (req: Request, res: Response): Promise<voi
     clearRefreshTokenCookie(res);
 
     logger.info(`User logged out from all devices: ${req.user.userId}`);
-    success(res, null, 'Logged out from all devices');
+    ResponseHelper.success(res, null, 'Logged out from all devices');
   } catch (error) {
     logger.error('Logout all devices failed:', error);
-    internalError(res, 'Failed to logout from all devices');
+    ResponseHelper.internalError(res, 'Failed to logout from all devices');
   }
 };

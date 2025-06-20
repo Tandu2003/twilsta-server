@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, ConversationType, ParticipantRole } from '@prisma/client';
-import {
-  success,
-  created,
-  badRequest,
-  unauthorized,
-  notFound,
-  internalError,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import { getRealtimeService } from '../services/realtimeInstance';
@@ -29,7 +22,7 @@ export class ConversationController {
       const skip = (page - 1) * limit;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -133,7 +126,7 @@ export class ConversationController {
 
       const totalPages = Math.ceil(total / limit);
 
-      success(
+      ResponseHelper.success(
         res,
         {
           conversations: conversationsWithUnread,
@@ -150,7 +143,7 @@ export class ConversationController {
       );
     } catch (error) {
       logger.error('Error getting conversations:', error);
-      internalError(res, 'Failed to get conversations');
+      ResponseHelper.internalError(res, 'Failed to get conversations');
     }
   };
 
@@ -163,7 +156,7 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -177,7 +170,7 @@ export class ConversationController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
@@ -205,11 +198,11 @@ export class ConversationController {
       });
 
       if (!conversation) {
-        notFound(res, 'Conversation not found');
+        ResponseHelper.notFound(res, 'Conversation not found');
         return;
       }
 
-      success(
+      ResponseHelper.success(
         res,
         {
           ...conversation,
@@ -219,7 +212,7 @@ export class ConversationController {
       );
     } catch (error) {
       logger.error('Error getting conversation:', error);
-      internalError(res, 'Failed to get conversation');
+      ResponseHelper.internalError(res, 'Failed to get conversation');
     }
   };
 
@@ -232,23 +225,29 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
-        badRequest(res, 'Participant IDs are required');
+        ResponseHelper.badRequest(res, 'Participant IDs are required');
         return;
       }
 
       // Validate conversation type
       if (type === 'DIRECT' && participantIds.length !== 1) {
-        badRequest(res, 'Direct conversations must have exactly one other participant');
+        ResponseHelper.badRequest(
+          res,
+          'Direct conversations must have exactly one other participant',
+        );
         return;
       }
 
       if (type === 'GROUP' && participantIds.length < 2) {
-        badRequest(res, 'Group conversations must have at least 2 other participants');
+        ResponseHelper.badRequest(
+          res,
+          'Group conversations must have at least 2 other participants',
+        );
         return;
       }
 
@@ -276,7 +275,7 @@ export class ConversationController {
         });
 
         if (existingConversation && existingConversation.participants.length === 2) {
-          success(res, existingConversation, 'Direct conversation already exists');
+          ResponseHelper.success(res, existingConversation, 'Direct conversation already exists');
           return;
         }
       }
@@ -297,7 +296,7 @@ export class ConversationController {
       });
 
       if (participants.length !== participantIds.length) {
-        badRequest(res, 'Some participants do not exist');
+        ResponseHelper.badRequest(res, 'Some participants do not exist');
         return;
       }
 
@@ -313,7 +312,7 @@ export class ConversationController {
           avatarUrl = result.secure_url;
         } catch (uploadError) {
           logger.error('Error uploading conversation avatar:', uploadError);
-          badRequest(res, 'Failed to upload avatar');
+          ResponseHelper.badRequest(res, 'Failed to upload avatar');
           return;
         }
       }
@@ -365,10 +364,10 @@ export class ConversationController {
       }
 
       logger.info(`New conversation created: ${newConversation.id} by user: ${userId}`);
-      created(res, newConversation, 'Conversation created successfully');
+      ResponseHelper.created(res, newConversation, 'Conversation created successfully');
     } catch (error) {
       logger.error('Error creating conversation:', error);
-      internalError(res, 'Failed to create conversation');
+      ResponseHelper.internalError(res, 'Failed to create conversation');
     }
   };
 
@@ -382,7 +381,7 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -399,17 +398,17 @@ export class ConversationController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
       if (!participant.conversation.isGroup) {
-        badRequest(res, 'Cannot update direct conversations');
+        ResponseHelper.badRequest(res, 'Cannot update direct conversations');
         return;
       }
 
       if (participant.role !== 'ADMIN') {
-        unauthorized(res, 'Only admins can update group conversations');
+        ResponseHelper.unauthorized(res, 'Only admins can update group conversations');
         return;
       }
 
@@ -434,7 +433,7 @@ export class ConversationController {
           avatarUrl = result.secure_url;
         } catch (uploadError) {
           logger.error('Error uploading conversation avatar:', uploadError);
-          badRequest(res, 'Failed to upload avatar');
+          ResponseHelper.badRequest(res, 'Failed to upload avatar');
           return;
         }
       }
@@ -475,10 +474,10 @@ export class ConversationController {
       }
 
       logger.info(`Conversation updated: ${conversationId} by user: ${userId}`);
-      success(res, updatedConversation, 'Conversation updated successfully');
+      ResponseHelper.success(res, updatedConversation, 'Conversation updated successfully');
     } catch (error) {
       logger.error('Error updating conversation:', error);
-      internalError(res, 'Failed to update conversation');
+      ResponseHelper.internalError(res, 'Failed to update conversation');
     }
   };
 
@@ -492,12 +491,12 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
-        badRequest(res, 'Participant IDs are required');
+        ResponseHelper.badRequest(res, 'Participant IDs are required');
         return;
       }
 
@@ -514,18 +513,18 @@ export class ConversationController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
       if (!participant.conversation.isGroup) {
-        badRequest(res, 'Cannot add participants to direct conversations');
+        ResponseHelper.badRequest(res, 'Cannot add participants to direct conversations');
         return;
       }
 
       // Check permissions (admin or if group allows member add)
       if (participant.role !== 'ADMIN' && !participant.conversation.allowMemberAdd) {
-        unauthorized(res, 'You do not have permission to add participants');
+        ResponseHelper.unauthorized(res, 'You do not have permission to add participants');
         return;
       }
 
@@ -549,7 +548,7 @@ export class ConversationController {
       );
 
       if (newParticipantIds.length === 0) {
-        badRequest(res, 'All specified users are already participants');
+        ResponseHelper.badRequest(res, 'All specified users are already participants');
         return;
       }
 
@@ -569,7 +568,7 @@ export class ConversationController {
       });
 
       if (users.length !== newParticipantIds.length) {
-        badRequest(res, 'Some users do not exist');
+        ResponseHelper.badRequest(res, 'Some users do not exist');
         return;
       }
 
@@ -612,10 +611,10 @@ export class ConversationController {
       }
 
       logger.info(`Participants added to conversation: ${conversationId} by user: ${userId}`);
-      success(res, updatedConversation, 'Participants added successfully');
+      ResponseHelper.success(res, updatedConversation, 'Participants added successfully');
     } catch (error) {
       logger.error('Error adding participants:', error);
-      internalError(res, 'Failed to add participants');
+      ResponseHelper.internalError(res, 'Failed to add participants');
     }
   };
 
@@ -628,7 +627,7 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -645,19 +644,19 @@ export class ConversationController {
       });
 
       if (!requestor) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
       if (!requestor.conversation.isGroup) {
-        badRequest(res, 'Cannot remove participants from direct conversations');
+        ResponseHelper.badRequest(res, 'Cannot remove participants from direct conversations');
         return;
       }
 
       // Check if removing self or if admin
       const isSelfRemoval = participantId === userId;
       if (!isSelfRemoval && requestor.role !== 'ADMIN') {
-        unauthorized(res, 'Only admins can remove other participants');
+        ResponseHelper.unauthorized(res, 'Only admins can remove other participants');
         return;
       }
 
@@ -671,7 +670,7 @@ export class ConversationController {
       });
 
       if (!targetParticipant) {
-        notFound(res, 'Participant not found in conversation');
+        ResponseHelper.notFound(res, 'Participant not found in conversation');
         return;
       }
 
@@ -686,7 +685,7 @@ export class ConversationController {
         });
 
         if (adminCount === 1) {
-          badRequest(res, 'Cannot remove the last admin from group conversation');
+          ResponseHelper.badRequest(res, 'Cannot remove the last admin from group conversation');
           return;
         }
       }
@@ -730,10 +729,10 @@ export class ConversationController {
       }
 
       logger.info(`Participant removed from conversation: ${conversationId} by user: ${userId}`);
-      success(res, updatedConversation, 'Participant removed successfully');
+      ResponseHelper.success(res, updatedConversation, 'Participant removed successfully');
     } catch (error) {
       logger.error('Error removing participant:', error);
-      internalError(res, 'Failed to remove participant');
+      ResponseHelper.internalError(res, 'Failed to remove participant');
     }
   };
 
@@ -746,7 +745,7 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -755,7 +754,7 @@ export class ConversationController {
       await ConversationController.removeParticipant(req, res);
     } catch (error) {
       logger.error('Error leaving conversation:', error);
-      internalError(res, 'Failed to leave conversation');
+      ResponseHelper.internalError(res, 'Failed to leave conversation');
     }
   };
 
@@ -768,7 +767,7 @@ export class ConversationController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -785,13 +784,13 @@ export class ConversationController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
       // Check permissions
       if (participant.conversation.isGroup && participant.role !== 'ADMIN') {
-        unauthorized(res, 'Only admins can delete group conversations');
+        ResponseHelper.unauthorized(res, 'Only admins can delete group conversations');
         return;
       }
 
@@ -812,7 +811,7 @@ export class ConversationController {
       });
 
       if (!conversation) {
-        notFound(res, 'Conversation not found');
+        ResponseHelper.notFound(res, 'Conversation not found');
         return;
       }
 
@@ -854,10 +853,10 @@ export class ConversationController {
       }
 
       logger.info(`Conversation deleted: ${conversationId} by user: ${userId}`);
-      success(res, null, 'Conversation deleted successfully');
+      ResponseHelper.success(res, null, 'Conversation deleted successfully');
     } catch (error) {
       logger.error('Error deleting conversation:', error);
-      internalError(res, 'Failed to delete conversation');
+      ResponseHelper.internalError(res, 'Failed to delete conversation');
     }
   };
 }

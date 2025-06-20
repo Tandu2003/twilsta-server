@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
-import { badRequest } from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 
 // File type validation
@@ -213,29 +213,29 @@ export const handleUploadError = (
 
     switch (error.code) {
       case 'LIMIT_FILE_SIZE':
-        badRequest(res, 'File too large');
+        ResponseHelper.badRequest(res, 'File too large');
         return;
       case 'LIMIT_FILE_COUNT':
-        badRequest(res, 'Too many files uploaded');
+        ResponseHelper.badRequest(res, 'Too many files uploaded');
         return;
       case 'LIMIT_UNEXPECTED_FILE':
-        badRequest(res, 'Unexpected file field');
+        ResponseHelper.badRequest(res, 'Unexpected file field');
         return;
       default:
-        badRequest(res, 'File upload error');
+        ResponseHelper.badRequest(res, 'File upload error');
         return;
     }
   }
 
   if (error.message) {
     logger.error('File validation error:', error.message);
-    badRequest(res, error.message);
+    ResponseHelper.badRequest(res, error.message);
     return;
   }
 
   // If it's an unknown error, return generic upload error instead of calling next()
   logger.error('Unknown upload error:', error);
-  badRequest(res, 'File upload failed');
+  ResponseHelper.badRequest(res, 'File upload failed');
   return;
 };
 
@@ -308,7 +308,7 @@ export const validateUploadedFiles = (req: Request, res: Response, next: NextFun
   const file = req.file;
   const files = req.files as Express.Multer.File[];
   if (!file && !files?.length) {
-    badRequest(res, 'No files uploaded');
+    ResponseHelper.badRequest(res, 'No files uploaded');
     return;
   }
 

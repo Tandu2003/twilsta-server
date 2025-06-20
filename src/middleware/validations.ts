@@ -1,6 +1,6 @@
 import { body, param, query, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
-import { internalError, validationError } from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 
 /**
  * Middleware to handle validation errors
@@ -28,7 +28,7 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
       console.log('🔍 Validation errors:', formattedErrors);
 
       // Return validation error response immediately - DO NOT call next()
-      validationError(res, formattedErrors, errorMessage);
+      ResponseHelper.validationError(res, formattedErrors, errorMessage);
       return; // Important: return here to stop execution
     }
 
@@ -37,7 +37,7 @@ export const validateRequest = (req: Request, res: Response, next: NextFunction)
   } catch (error) {
     // If validation middleware itself fails, return 500
     console.error('❌ Error in validation middleware:', error);
-    internalError(res, 'Internal validation error');
+    ResponseHelper.internalError(res, 'Internal validation error');
     return;
   }
 };

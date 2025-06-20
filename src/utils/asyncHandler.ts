@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { internalError, ResponseHelper } from './responseHelper';
+import { ResponseHelper } from './responseHelper';
 import logger from './logger';
 
 /**
@@ -48,7 +48,7 @@ export const safeAsyncHandler = (fn: Function) => {
         }
 
         // Send a safe error response
-        internalError(
+        ResponseHelper.internalError(
           res,
           process.env.NODE_ENV === 'production' ? 'Something went wrong!' : error.message,
         );
@@ -60,7 +60,7 @@ export const safeAsyncHandler = (fn: Function) => {
           if (!res.headersSent) {
             // Try ResponseHelper one more time with minimal data
             try {
-              internalError(res, 'Critical server error');
+              ResponseHelper.internalError(res, 'Critical server error');
             } catch (responseHelperError) {
               // If ResponseHelper fails, fall back to basic response
               res.status(500).json({

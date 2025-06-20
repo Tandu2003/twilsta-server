@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import {
-  success,
-  created,
-  badRequest,
-  unauthorized,
-  notFound,
-  internalError,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import emailService from '../services/emailService';
@@ -35,7 +28,7 @@ export class CommentController {
       });
 
       if (!post) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
@@ -99,7 +92,7 @@ export class CommentController {
       const totalPages = Math.ceil(totalComments / limit);
 
       logger.info(`Retrieved ${comments.length} comments for post: ${postId}`);
-      success(
+      ResponseHelper.success(
         res,
         {
           comments,
@@ -116,7 +109,7 @@ export class CommentController {
       );
     } catch (error) {
       logger.error('Error getting comments:', error);
-      internalError(res, 'Failed to retrieve comments');
+      ResponseHelper.internalError(res, 'Failed to retrieve comments');
     }
   };
 
@@ -136,7 +129,7 @@ export class CommentController {
       });
 
       if (!parentComment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
@@ -175,7 +168,7 @@ export class CommentController {
 
       const totalPages = Math.ceil(totalReplies / limit);
 
-      success(
+      ResponseHelper.success(
         res,
         {
           replies,
@@ -192,7 +185,7 @@ export class CommentController {
       );
     } catch (error) {
       logger.error('Error getting replies:', error);
-      internalError(res, 'Failed to retrieve replies');
+      ResponseHelper.internalError(res, 'Failed to retrieve replies');
     }
   };
 
@@ -203,7 +196,7 @@ export class CommentController {
     try {
       const userId = req.user?.userId; // Assuming user is authenticated
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -211,7 +204,7 @@ export class CommentController {
 
       // Validate required fields
       if (!content && (!req.files || !Array.isArray(req.files) || req.files.length === 0)) {
-        badRequest(res, 'Content or media files are required');
+        ResponseHelper.badRequest(res, 'Content or media files are required');
         return;
       }
 
@@ -231,7 +224,7 @@ export class CommentController {
       });
 
       if (!post) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
@@ -256,7 +249,7 @@ export class CommentController {
         });
 
         if (!parentComment) {
-          badRequest(res, 'Parent comment not found');
+          ResponseHelper.badRequest(res, 'Parent comment not found');
           return;
         }
 
@@ -291,7 +284,7 @@ export class CommentController {
           }
         } catch (uploadError) {
           logger.error('Error uploading comment media:', uploadError);
-          badRequest(res, 'Failed to upload media files');
+          ResponseHelper.badRequest(res, 'Failed to upload media files');
           return;
         }
       }
@@ -388,10 +381,10 @@ export class CommentController {
       }
 
       logger.info(`New comment created: ${newComment.id} by user: ${userId}`);
-      created(res, newComment, 'Comment created successfully');
+      ResponseHelper.created(res, newComment, 'Comment created successfully');
     } catch (error) {
       logger.error('Error creating comment:', error);
-      internalError(res, 'Failed to create comment');
+      ResponseHelper.internalError(res, 'Failed to create comment');
     }
   };
 
@@ -405,7 +398,7 @@ export class CommentController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -415,12 +408,12 @@ export class CommentController {
       });
 
       if (!comment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
       if (comment.userId !== userId) {
-        unauthorized(res, 'You can only edit your own comments');
+        ResponseHelper.unauthorized(res, 'You can only edit your own comments');
         return;
       }
 
@@ -452,10 +445,10 @@ export class CommentController {
       }
 
       logger.info(`Comment updated: ${id} by user: ${userId}`);
-      success(res, updatedComment, 'Comment updated successfully');
+      ResponseHelper.success(res, updatedComment, 'Comment updated successfully');
     } catch (error) {
       logger.error('Error updating comment:', error);
-      internalError(res, 'Failed to update comment');
+      ResponseHelper.internalError(res, 'Failed to update comment');
     }
   };
 
@@ -468,7 +461,7 @@ export class CommentController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -481,12 +474,12 @@ export class CommentController {
       });
 
       if (!comment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
       if (comment.userId !== userId) {
-        unauthorized(res, 'You can only delete your own comments');
+        ResponseHelper.unauthorized(res, 'You can only delete your own comments');
         return;
       }
 
@@ -533,10 +526,10 @@ export class CommentController {
       }
 
       logger.info(`Comment deleted: ${id} by user: ${userId}`);
-      success(res, null, 'Comment deleted successfully');
+      ResponseHelper.success(res, null, 'Comment deleted successfully');
     } catch (error) {
       logger.error('Error deleting comment:', error);
-      internalError(res, 'Failed to delete comment');
+      ResponseHelper.internalError(res, 'Failed to delete comment');
     }
   };
 
@@ -549,7 +542,7 @@ export class CommentController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       } // Verify comment exists
       const comment = await prisma.comment.findUnique({
@@ -558,7 +551,7 @@ export class CommentController {
       });
 
       if (!comment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
@@ -639,10 +632,14 @@ export class CommentController {
         logger.info(`Comment liked: ${id} by user: ${userId}`);
       }
 
-      success(res, { isLiked }, `Comment ${isLiked ? 'liked' : 'unliked'} successfully`);
+      ResponseHelper.success(
+        res,
+        { isLiked },
+        `Comment ${isLiked ? 'liked' : 'unliked'} successfully`,
+      );
     } catch (error) {
       logger.error('Error toggling comment like:', error);
-      internalError(res, 'Failed to toggle comment like');
+      ResponseHelper.internalError(res, 'Failed to toggle comment like');
     }
   };
 
@@ -655,12 +652,12 @@ export class CommentController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-        badRequest(res, 'No files uploaded');
+        ResponseHelper.badRequest(res, 'No files uploaded');
         return;
       }
 
@@ -670,12 +667,12 @@ export class CommentController {
       });
 
       if (!comment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
       if (comment.userId !== userId) {
-        unauthorized(res, 'You can only modify your own comments');
+        ResponseHelper.unauthorized(res, 'You can only modify your own comments');
         return;
       }
 
@@ -706,7 +703,7 @@ export class CommentController {
         }
       } catch (uploadError) {
         logger.error('Error uploading media to comment:', uploadError);
-        badRequest(res, 'Failed to upload media files');
+        ResponseHelper.badRequest(res, 'Failed to upload media files');
         return;
       }
 
@@ -745,10 +742,10 @@ export class CommentController {
       });
 
       logger.info(`Media added to comment: ${id} by user: ${userId}`);
-      success(res, updatedComment, 'Media added to comment successfully');
+      ResponseHelper.success(res, updatedComment, 'Media added to comment successfully');
     } catch (error) {
       logger.error('Error adding media to comment:', error);
-      internalError(res, 'Failed to add media to comment');
+      ResponseHelper.internalError(res, 'Failed to add media to comment');
     }
   };
 
@@ -762,7 +759,7 @@ export class CommentController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -772,12 +769,12 @@ export class CommentController {
       });
 
       if (!comment) {
-        notFound(res, 'Comment not found');
+        ResponseHelper.notFound(res, 'Comment not found');
         return;
       }
 
       if (comment.userId !== userId) {
-        unauthorized(res, 'You can only modify your own comments');
+        ResponseHelper.unauthorized(res, 'You can only modify your own comments');
         return;
       }
 
@@ -800,7 +797,7 @@ export class CommentController {
           updateData.documents = comment.documents.filter((url) => !mediaUrls.includes(url));
           break;
         default:
-          badRequest(res, 'Invalid media type');
+          ResponseHelper.badRequest(res, 'Invalid media type');
           return;
       }
 
@@ -840,10 +837,10 @@ export class CommentController {
       }
 
       logger.info(`Media removed from comment: ${id} by user: ${userId}`);
-      success(res, updatedComment, 'Media removed from comment successfully');
+      ResponseHelper.success(res, updatedComment, 'Media removed from comment successfully');
     } catch (error) {
       logger.error('Error removing media from comment:', error);
-      internalError(res, 'Failed to remove media from comment');
+      ResponseHelper.internalError(res, 'Failed to remove media from comment');
     }
   };
 }

@@ -5,7 +5,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import apiRoutes from './routes';
 import logger from './utils/logger';
-import { internalError, error as errorResponse, success } from './utils/responseHelper';
+import { ResponseHelper } from './utils/responseHelper';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger, customRequestLogger } from './middleware/logging';
 import { securityHeaders, requestSizeLimiter } from './middleware/security';
@@ -90,10 +90,10 @@ app.get('/health', async (req: Request, res: Response) => {
       healthData.status = 'DEGRADED';
     }
 
-    success(res, healthData, 'Server health check completed');
+    ResponseHelper.success(res, healthData, 'Server health check completed');
   } catch (error) {
     logger.error('Health check error:', error);
-    errorResponse(res, 'Health check failed', 503);
+    ResponseHelper.error(res, 'Health check failed', 503);
   }
 });
 
@@ -110,7 +110,7 @@ app.get('/status', (req: Request, res: Response) => {
     res.json(status);
   } catch (error) {
     logger.error('Status check error:', error);
-    internalError(res, 'Status check failed', {
+    ResponseHelper.internalError(res, 'Status check failed', {
       server: 'error',
       error: process.env.NODE_ENV === 'production' ? 'Status check failed' : String(error),
     });

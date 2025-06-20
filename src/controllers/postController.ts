@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, PostType } from '@prisma/client';
-import {
-  success,
-  created,
-  badRequest,
-  unauthorized,
-  notFound,
-  internalError,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import { getRealtimeService } from '../services/realtimeInstance';
@@ -103,7 +96,7 @@ export class PostController {
 
       const totalPages = Math.ceil(total / limit);
 
-      success(
+      ResponseHelper.success(
         res,
         {
           posts,
@@ -120,7 +113,7 @@ export class PostController {
       );
     } catch (error) {
       logger.error('Error retrieving posts:', error);
-      internalError(res, 'Failed to retrieve posts');
+      ResponseHelper.internalError(res, 'Failed to retrieve posts');
     }
   };
 
@@ -203,15 +196,15 @@ export class PostController {
       });
 
       if (!post) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
       logger.info(`Post retrieved: ${id}`);
-      success(res, post, 'Post retrieved successfully');
+      ResponseHelper.success(res, post, 'Post retrieved successfully');
     } catch (error) {
       logger.error('Error retrieving post:', error);
-      internalError(res, 'Failed to retrieve post');
+      ResponseHelper.internalError(res, 'Failed to retrieve post');
     }
   };
 
@@ -222,7 +215,7 @@ export class PostController {
     try {
       const userId = req.user?.userId; // Assuming user is authenticated
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -230,7 +223,7 @@ export class PostController {
 
       // Validate required fields
       if (!content && (!req.files || !Array.isArray(req.files) || req.files.length === 0)) {
-        badRequest(res, 'Content or media files are required');
+        ResponseHelper.badRequest(res, 'Content or media files are required');
         return;
       }
 
@@ -256,7 +249,7 @@ export class PostController {
           }
         } catch (uploadError) {
           logger.error('Error uploading media files:', uploadError);
-          badRequest(res, 'Failed to upload media files');
+          ResponseHelper.badRequest(res, 'Failed to upload media files');
           return;
         }
       }
@@ -281,7 +274,7 @@ export class PostController {
           where: { id: parentId },
         });
         if (!parentPost) {
-          badRequest(res, 'Parent post not found');
+          ResponseHelper.badRequest(res, 'Parent post not found');
           return;
         }
       }
@@ -346,10 +339,10 @@ export class PostController {
       }
 
       logger.info(`New post created: ${newPost.id} by user: ${userId}`);
-      created(res, newPost, 'Post created successfully');
+      ResponseHelper.created(res, newPost, 'Post created successfully');
     } catch (error) {
       logger.error('Error creating post:', error);
-      internalError(res, 'Failed to create post');
+      ResponseHelper.internalError(res, 'Failed to create post');
     }
   };
 
@@ -362,7 +355,7 @@ export class PostController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -375,12 +368,12 @@ export class PostController {
       });
 
       if (!existingPost) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
       if (existingPost.authorId !== userId) {
-        unauthorized(res, 'You can only edit your own posts');
+        ResponseHelper.unauthorized(res, 'You can only edit your own posts');
         return;
       }
 
@@ -420,10 +413,10 @@ export class PostController {
       }
 
       logger.info(`Post updated: ${id} by user: ${userId}`);
-      success(res, updatedPost, 'Post updated successfully');
+      ResponseHelper.success(res, updatedPost, 'Post updated successfully');
     } catch (error) {
       logger.error('Error updating post:', error);
-      internalError(res, 'Failed to update post');
+      ResponseHelper.internalError(res, 'Failed to update post');
     }
   };
 
@@ -436,7 +429,7 @@ export class PostController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -458,12 +451,12 @@ export class PostController {
       });
 
       if (!existingPost) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
       if (existingPost.authorId !== userId) {
-        unauthorized(res, 'You can only delete your own posts');
+        ResponseHelper.unauthorized(res, 'You can only delete your own posts');
         return;
       }
 
@@ -515,10 +508,10 @@ export class PostController {
       }
 
       logger.info(`Post deleted: ${id} by user: ${userId}`);
-      success(res, null, 'Post deleted successfully');
+      ResponseHelper.success(res, null, 'Post deleted successfully');
     } catch (error) {
       logger.error('Error deleting post:', error);
-      internalError(res, 'Failed to delete post');
+      ResponseHelper.internalError(res, 'Failed to delete post');
     }
   };
 
@@ -531,7 +524,7 @@ export class PostController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -542,7 +535,7 @@ export class PostController {
       });
 
       if (!post) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
@@ -613,7 +606,7 @@ export class PostController {
       });
 
       logger.info(`Post ${liked ? 'liked' : 'unliked'}: ${id} by user: ${userId}`);
-      success(
+      ResponseHelper.success(
         res,
         {
           postId: id,
@@ -624,7 +617,7 @@ export class PostController {
       );
     } catch (error) {
       logger.error('Error toggling like:', error);
-      internalError(res, 'Failed to toggle like');
+      ResponseHelper.internalError(res, 'Failed to toggle like');
     }
   };
 
@@ -647,7 +640,7 @@ export class PostController {
       });
 
       if (!parentPost) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
@@ -680,7 +673,7 @@ export class PostController {
 
       const totalPages = Math.ceil(total / limit);
 
-      success(
+      ResponseHelper.success(
         res,
         {
           replies,
@@ -697,7 +690,7 @@ export class PostController {
       );
     } catch (error) {
       logger.error('Error retrieving replies:', error);
-      internalError(res, 'Failed to retrieve replies');
+      ResponseHelper.internalError(res, 'Failed to retrieve replies');
     }
   };
 
@@ -710,12 +703,12 @@ export class PostController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-        badRequest(res, 'No media files provided');
+        ResponseHelper.badRequest(res, 'No media files provided');
         return;
       }
 
@@ -733,12 +726,12 @@ export class PostController {
       });
 
       if (!existingPost) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
       if (existingPost.authorId !== userId) {
-        unauthorized(res, 'You can only modify your own posts');
+        ResponseHelper.unauthorized(res, 'You can only modify your own posts');
         return;
       }
 
@@ -805,14 +798,14 @@ export class PostController {
         });
 
         logger.info(`Media added to post: ${id} by user: ${userId}`);
-        success(res, updatedPost, 'Media added to post successfully');
+        ResponseHelper.success(res, updatedPost, 'Media added to post successfully');
       } catch (uploadError) {
         logger.error('Error uploading media files:', uploadError);
-        badRequest(res, 'Failed to upload media files');
+        ResponseHelper.badRequest(res, 'Failed to upload media files');
       }
     } catch (error) {
       logger.error('Error adding media to post:', error);
-      internalError(res, 'Failed to add media to post');
+      ResponseHelper.internalError(res, 'Failed to add media to post');
     }
   };
 
@@ -826,12 +819,12 @@ export class PostController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!mediaUrl || !mediaType) {
-        badRequest(res, 'Media URL and type are required');
+        ResponseHelper.badRequest(res, 'Media URL and type are required');
         return;
       }
 
@@ -848,12 +841,12 @@ export class PostController {
       });
 
       if (!existingPost) {
-        notFound(res, 'Post not found');
+        ResponseHelper.notFound(res, 'Post not found');
         return;
       }
 
       if (existingPost.authorId !== userId) {
-        unauthorized(res, 'You can only modify your own posts');
+        ResponseHelper.unauthorized(res, 'You can only modify your own posts');
         return;
       }
 
@@ -875,7 +868,7 @@ export class PostController {
       }
 
       if (!mediaFound) {
-        badRequest(res, 'Media URL not found in post');
+        ResponseHelper.badRequest(res, 'Media URL not found in post');
         return;
       }
 
@@ -933,10 +926,10 @@ export class PostController {
       });
 
       logger.info(`Media removed from post: ${id} by user: ${userId}`);
-      success(res, updatedPost, 'Media removed from post successfully');
+      ResponseHelper.success(res, updatedPost, 'Media removed from post successfully');
     } catch (error) {
       logger.error('Error removing media from post:', error);
-      internalError(res, 'Failed to remove media from post');
+      ResponseHelper.internalError(res, 'Failed to remove media from post');
     }
   };
 }

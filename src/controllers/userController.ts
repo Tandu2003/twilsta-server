@@ -1,15 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import {
-  success,
-  created,
-  badRequest,
-  unauthorized,
-  notFound,
-  internalError,
-  paginated,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import emailService from '../services/emailService';
@@ -68,10 +60,10 @@ export class UserController {
         }),
         prisma.user.count({ where }),
       ]);
-      paginated(res, users, page, limit, total, 'Users retrieved successfully');
+      ResponseHelper.paginated(res, users, page, limit, total, 'Users retrieved successfully');
     } catch (error) {
       logger.error('Error getting users:', error);
-      internalError(res, 'Failed to retrieve users');
+      ResponseHelper.internalError(res, 'Failed to retrieve users');
     }
   };
 
@@ -105,7 +97,7 @@ export class UserController {
       });
 
       if (!user) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
@@ -123,7 +115,7 @@ export class UserController {
         isFollowing = !!follow;
       }
 
-      success(
+      ResponseHelper.success(
         res,
         {
           ...user,
@@ -134,7 +126,7 @@ export class UserController {
       );
     } catch (error) {
       logger.error('Error getting user by ID:', error);
-      internalError(res, 'Failed to retrieve user');
+      ResponseHelper.internalError(res, 'Failed to retrieve user');
     }
   };
 
@@ -168,7 +160,7 @@ export class UserController {
       });
 
       if (!user) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
@@ -186,7 +178,7 @@ export class UserController {
         isFollowing = !!follow;
       }
 
-      success(
+      ResponseHelper.success(
         res,
         {
           ...user,
@@ -197,7 +189,7 @@ export class UserController {
       );
     } catch (error) {
       logger.error('Error getting user by username:', error);
-      internalError(res, 'Failed to retrieve user');
+      ResponseHelper.internalError(res, 'Failed to retrieve user');
     }
   };
 
@@ -208,7 +200,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -216,17 +208,17 @@ export class UserController {
 
       // Validate input
       if (displayName && (displayName.length < 1 || displayName.length > 50)) {
-        badRequest(res, 'Display name must be between 1 and 50 characters');
+        ResponseHelper.badRequest(res, 'Display name must be between 1 and 50 characters');
         return;
       }
 
       if (bio && bio.length > 160) {
-        badRequest(res, 'Bio must be no more than 160 characters');
+        ResponseHelper.badRequest(res, 'Bio must be no more than 160 characters');
         return;
       }
 
       if (website && !/^https?:\/\/.+/.test(website)) {
-        badRequest(res, 'Website must be a valid URL');
+        ResponseHelper.badRequest(res, 'Website must be a valid URL');
         return;
       }
 
@@ -257,10 +249,10 @@ export class UserController {
       });
 
       logger.info(`User profile updated: ${userId}`);
-      success(res, { user: updatedUser }, 'Profile updated successfully');
+      ResponseHelper.success(res, { user: updatedUser }, 'Profile updated successfully');
     } catch (error) {
       logger.error('Error updating profile:', error);
-      internalError(res, 'Failed to update profile');
+      ResponseHelper.internalError(res, 'Failed to update profile');
     }
   };
 
@@ -271,12 +263,12 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!req.file) {
-        badRequest(res, 'No avatar file provided');
+        ResponseHelper.badRequest(res, 'No avatar file provided');
         return;
       }
 
@@ -308,7 +300,7 @@ export class UserController {
       }
 
       logger.info(`Avatar uploaded for user: ${userId}`);
-      success(
+      ResponseHelper.success(
         res,
         {
           user: updatedUser,
@@ -321,7 +313,7 @@ export class UserController {
       );
     } catch (error) {
       logger.error('Error uploading avatar:', error);
-      internalError(res, 'Failed to upload avatar');
+      ResponseHelper.internalError(res, 'Failed to upload avatar');
     }
   };
 
@@ -332,12 +324,12 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!req.file) {
-        badRequest(res, 'No cover image file provided');
+        ResponseHelper.badRequest(res, 'No cover image file provided');
         return;
       }
 
@@ -369,7 +361,7 @@ export class UserController {
       }
 
       logger.info(`Cover image uploaded for user: ${userId}`);
-      success(
+      ResponseHelper.success(
         res,
         {
           user: updatedUser,
@@ -382,7 +374,7 @@ export class UserController {
       );
     } catch (error) {
       logger.error('Error uploading cover image:', error);
-      internalError(res, 'Failed to upload cover image');
+      ResponseHelper.internalError(res, 'Failed to upload cover image');
     }
   };
 
@@ -393,7 +385,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -404,7 +396,7 @@ export class UserController {
       });
 
       if (!currentUser?.avatar) {
-        badRequest(res, 'No avatar to remove');
+        ResponseHelper.badRequest(res, 'No avatar to remove');
         return;
       }
 
@@ -425,10 +417,10 @@ export class UserController {
       await cloudinaryService.deleteFile(publicId);
 
       logger.info(`Avatar removed for user: ${userId}`);
-      success(res, { user: updatedUser }, 'Avatar removed successfully');
+      ResponseHelper.success(res, { user: updatedUser }, 'Avatar removed successfully');
     } catch (error) {
       logger.error('Error removing avatar:', error);
-      internalError(res, 'Failed to remove avatar');
+      ResponseHelper.internalError(res, 'Failed to remove avatar');
     }
   };
 
@@ -439,7 +431,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -450,7 +442,7 @@ export class UserController {
       });
 
       if (!currentUser?.coverImage) {
-        badRequest(res, 'No cover image to remove');
+        ResponseHelper.badRequest(res, 'No cover image to remove');
         return;
       }
 
@@ -471,10 +463,10 @@ export class UserController {
       await cloudinaryService.deleteFile(publicId);
 
       logger.info(`Cover image removed for user: ${userId}`);
-      success(res, { user: updatedUser }, 'Cover image removed successfully');
+      ResponseHelper.success(res, { user: updatedUser }, 'Cover image removed successfully');
     } catch (error) {
       logger.error('Error removing cover image:', error);
-      internalError(res, 'Failed to remove cover image');
+      ResponseHelper.internalError(res, 'Failed to remove cover image');
     }
   };
 
@@ -511,10 +503,17 @@ export class UserController {
       ]);
 
       const followersList = followers.map((f) => f.follower);
-      paginated(res, followersList, page, limit, total, 'Followers retrieved successfully');
+      ResponseHelper.paginated(
+        res,
+        followersList,
+        page,
+        limit,
+        total,
+        'Followers retrieved successfully',
+      );
     } catch (error) {
       logger.error('Error getting followers:', error);
-      internalError(res, 'Failed to retrieve followers');
+      ResponseHelper.internalError(res, 'Failed to retrieve followers');
     }
   };
 
@@ -551,10 +550,17 @@ export class UserController {
       ]);
 
       const followingList = following.map((f) => f.following);
-      paginated(res, followingList, page, limit, total, 'Following retrieved successfully');
+      ResponseHelper.paginated(
+        res,
+        followingList,
+        page,
+        limit,
+        total,
+        'Following retrieved successfully',
+      );
     } catch (error) {
       logger.error('Error getting following:', error);
-      internalError(res, 'Failed to retrieve following');
+      ResponseHelper.internalError(res, 'Failed to retrieve following');
     }
   };
 
@@ -567,12 +573,12 @@ export class UserController {
       const { id: followingId } = req.params;
 
       if (!followerId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (followerId === followingId) {
-        badRequest(res, 'Cannot follow yourself');
+        ResponseHelper.badRequest(res, 'Cannot follow yourself');
         return;
       }
 
@@ -583,7 +589,7 @@ export class UserController {
       });
 
       if (!userToFollow) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
@@ -598,7 +604,7 @@ export class UserController {
       });
 
       if (existingFollow) {
-        badRequest(res, 'Already following this user');
+        ResponseHelper.badRequest(res, 'Already following this user');
         return;
       }
 
@@ -642,10 +648,10 @@ export class UserController {
       }
 
       logger.info(`User ${followerId} followed ${followingId}`);
-      success(res, { following: true }, 'User followed successfully');
+      ResponseHelper.success(res, { following: true }, 'User followed successfully');
     } catch (error) {
       logger.error('Error following user:', error);
-      internalError(res, 'Failed to follow user');
+      ResponseHelper.internalError(res, 'Failed to follow user');
     }
   };
 
@@ -658,7 +664,7 @@ export class UserController {
       const { id: followingId } = req.params;
 
       if (!followerId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -673,7 +679,7 @@ export class UserController {
       });
 
       if (!existingFollow) {
-        badRequest(res, 'Not following this user');
+        ResponseHelper.badRequest(res, 'Not following this user');
         return;
       }
 
@@ -700,10 +706,10 @@ export class UserController {
       });
 
       logger.info(`User ${followerId} unfollowed ${followingId}`);
-      success(res, { following: false }, 'User unfollowed successfully');
+      ResponseHelper.success(res, { following: false }, 'User unfollowed successfully');
     } catch (error) {
       logger.error('Error unfollowing user:', error);
-      internalError(res, 'Failed to unfollow user');
+      ResponseHelper.internalError(res, 'Failed to unfollow user');
     }
   };
 
@@ -714,7 +720,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -727,14 +733,14 @@ export class UserController {
       });
 
       if (!user) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
       // Verify current password
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isCurrentPasswordValid) {
-        badRequest(res, 'Current password is incorrect');
+        ResponseHelper.badRequest(res, 'Current password is incorrect');
         return;
       }
 
@@ -756,10 +762,10 @@ export class UserController {
       }
 
       logger.info(`Password changed for user: ${userId}`);
-      success(res, null, 'Password changed successfully');
+      ResponseHelper.success(res, null, 'Password changed successfully');
     } catch (error) {
       logger.error('Error changing password:', error);
-      internalError(res, 'Failed to change password');
+      ResponseHelper.internalError(res, 'Failed to change password');
     }
   };
 
@@ -770,7 +776,7 @@ export class UserController {
     try {
       const userId = req.user?.userId;
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -783,14 +789,14 @@ export class UserController {
       });
 
       if (!user) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        badRequest(res, 'Password is incorrect');
+        ResponseHelper.badRequest(res, 'Password is incorrect');
         return;
       }
 
@@ -814,10 +820,10 @@ export class UserController {
       }
 
       logger.info(`Account deactivated for user: ${userId}`);
-      success(res, null, 'Account deactivated successfully');
+      ResponseHelper.success(res, null, 'Account deactivated successfully');
     } catch (error) {
       logger.error('Error deactivating account:', error);
-      internalError(res, 'Failed to deactivate account');
+      ResponseHelper.internalError(res, 'Failed to deactivate account');
     }
   };
 
@@ -836,7 +842,7 @@ export class UserController {
       });
 
       if (existingUser) {
-        badRequest(res, 'User with this email or username already exists');
+        ResponseHelper.badRequest(res, 'User with this email or username already exists');
         return;
       }
 
@@ -875,10 +881,10 @@ export class UserController {
       }
 
       logger.info(`New user registered: ${newUser.id} - ${username}`);
-      created(res, newUser, 'User registered successfully');
+      ResponseHelper.created(res, newUser, 'User registered successfully');
     } catch (error) {
       logger.error('Error registering user:', error);
-      internalError(res, 'Failed to register user');
+      ResponseHelper.internalError(res, 'Failed to register user');
     }
   };
 
@@ -903,13 +909,13 @@ export class UserController {
       });
 
       if (!user) {
-        notFound(res, 'User not found');
+        ResponseHelper.notFound(res, 'User not found');
         return;
       }
 
       // Check authorization (user can only delete their own account)
       if (userId !== id) {
-        unauthorized(res, 'You can only delete your own account');
+        ResponseHelper.unauthorized(res, 'You can only delete your own account');
         return;
       } // Clean up Cloudinary assets
       try {
@@ -941,10 +947,10 @@ export class UserController {
       });
 
       logger.info(`User deleted: ${id} - ${user.username}`);
-      success(res, null, 'User deleted successfully');
+      ResponseHelper.success(res, null, 'User deleted successfully');
     } catch (error) {
       logger.error('Error deleting user:', error);
-      internalError(res, 'Failed to delete user');
+      ResponseHelper.internalError(res, 'Failed to delete user');
     }
   };
 }

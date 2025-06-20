@@ -1,13 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import logger from '../utils/logger';
-import {
-  error as ErrorResponse,
-  validationError,
-  internalError,
-  notFound,
-  badRequest,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import { AppError, ValidationError } from '../utils/errors';
 
 /**
@@ -86,13 +80,13 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
     // Handle validation errors specifically
     if (error instanceof ValidationError) {
-      validationError(res, error.errors, error.message);
+      ResponseHelper.validationError(res, error.errors, error.message);
       return;
     }
 
     // Handle operational errors
     if (error instanceof AppError) {
-      ErrorResponse(res, error.message, error.statusCode);
+      ResponseHelper.error(res, error.message, error.statusCode);
       return;
     }
 
@@ -118,7 +112,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     // Try to send a basic error response if possible
     try {
       if (!res.headersSent) {
-        internalError(res, 'Critical server error');
+        ResponseHelper.internalError(res, 'Critical server error');
       }
     } catch (responseError) {
       logger.error('❌ Failed to send error response:', responseError);
@@ -138,13 +132,13 @@ export const notFoundHandler = (req: Request, res: Response, next: NextFunction)
     });
 
     if (!res.headersSent) {
-      notFound(res, `Route ${req.originalUrl} not found`);
+      ResponseHelper.notFound(res, `Route ${req.originalUrl} not found`);
     }
   } catch (error) {
     logger.error('Error in 404 handler:', error);
     try {
       if (!res.headersSent) {
-        notFound(res, 'Not found');
+        ResponseHelper.notFound(res, 'Not found');
       }
     } catch (responseError) {
       logger.error('Failed to send 404 response:', responseError);
@@ -169,7 +163,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
       logger.info('Validation errors:', { errors: errorMessages, url: req.url });
 
       if (!res.headersSent) {
-        validationError(res, errorMessages);
+        ResponseHelper.validationError(res, errorMessages);
       }
       return;
     }
@@ -179,7 +173,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
     logger.error('Error in validation handler:', error);
     try {
       if (!res.headersSent) {
-        badRequest(res, 'Validation error');
+        ResponseHelper.badRequest(res, 'Validation error');
       }
     } catch (responseError) {
       logger.error('Failed to send validation error response:', responseError);

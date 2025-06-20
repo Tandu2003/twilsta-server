@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, MessageType } from '@prisma/client';
-import {
-  success,
-  created,
-  badRequest,
-  unauthorized,
-  notFound,
-  internalError,
-} from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
 import { getRealtimeService } from '../services/realtimeInstance';
@@ -30,7 +23,7 @@ export class MessageController {
       const skip = (page - 1) * limit;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -44,7 +37,7 @@ export class MessageController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
@@ -109,7 +102,7 @@ export class MessageController {
       const hasNextPage = page < totalPages;
       const hasPrevPage = page > 1;
 
-      success(
+      ResponseHelper.success(
         res,
         {
           messages: messages.reverse(), // Reverse to show oldest first
@@ -126,7 +119,7 @@ export class MessageController {
       );
     } catch (error) {
       logger.error('Error getting messages:', error);
-      internalError(res, 'Failed to get messages');
+      ResponseHelper.internalError(res, 'Failed to get messages');
     }
   };
 
@@ -140,7 +133,7 @@ export class MessageController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -154,7 +147,7 @@ export class MessageController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
@@ -164,7 +157,7 @@ export class MessageController {
       });
 
       if (!conversation) {
-        notFound(res, 'Conversation not found');
+        ResponseHelper.notFound(res, 'Conversation not found');
         return;
       }
 
@@ -174,7 +167,7 @@ export class MessageController {
         conversation.onlyAdminsCanMessage &&
         participant.role === 'MEMBER'
       ) {
-        unauthorized(res, 'Only admins can send messages in this group');
+        ResponseHelper.unauthorized(res, 'Only admins can send messages in this group');
         return;
       }
 
@@ -190,7 +183,7 @@ export class MessageController {
         });
 
         if (!replyToMessage) {
-          badRequest(res, 'Reply message not found or deleted');
+          ResponseHelper.badRequest(res, 'Reply message not found or deleted');
           return;
         }
       }
@@ -260,14 +253,14 @@ export class MessageController {
           }
         } catch (uploadError) {
           logger.error('Error uploading message file:', uploadError);
-          badRequest(res, 'Failed to upload file');
+          ResponseHelper.badRequest(res, 'Failed to upload file');
           return;
         }
       }
 
       // Validate content or media
       if (!content && !imageUrl && !videoUrl && !audioUrl && !fileUrl) {
-        badRequest(res, 'Message must have content or media attachment');
+        ResponseHelper.badRequest(res, 'Message must have content or media attachment');
         return;
       }
 
@@ -344,10 +337,10 @@ export class MessageController {
       }
 
       logger.info(`New message sent: ${newMessage.id} by user: ${userId}`);
-      created(res, newMessage, 'Message sent successfully');
+      ResponseHelper.created(res, newMessage, 'Message sent successfully');
     } catch (error) {
       logger.error('Error sending message:', error);
-      internalError(res, 'Failed to send message');
+      ResponseHelper.internalError(res, 'Failed to send message');
     }
   };
 
@@ -361,12 +354,12 @@ export class MessageController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!content || content.trim().length === 0) {
-        badRequest(res, 'Content is required for editing message');
+        ResponseHelper.badRequest(res, 'Content is required for editing message');
         return;
       }
 
@@ -386,23 +379,23 @@ export class MessageController {
       });
 
       if (!message) {
-        notFound(res, 'Message not found');
+        ResponseHelper.notFound(res, 'Message not found');
         return;
       }
 
       if (message.senderId !== userId) {
-        unauthorized(res, 'You can only edit your own messages');
+        ResponseHelper.unauthorized(res, 'You can only edit your own messages');
         return;
       }
 
       if (message.isDeleted) {
-        badRequest(res, 'Cannot edit deleted message');
+        ResponseHelper.badRequest(res, 'Cannot edit deleted message');
         return;
       }
 
       // Only allow editing text messages
       if (message.type !== 'TEXT') {
-        badRequest(res, 'Only text messages can be edited');
+        ResponseHelper.badRequest(res, 'Only text messages can be edited');
         return;
       }
 
@@ -447,10 +440,10 @@ export class MessageController {
       }
 
       logger.info(`Message edited: ${messageId} by user: ${userId}`);
-      success(res, updatedMessage, 'Message updated successfully');
+      ResponseHelper.success(res, updatedMessage, 'Message updated successfully');
     } catch (error) {
       logger.error('Error editing message:', error);
-      internalError(res, 'Failed to edit message');
+      ResponseHelper.internalError(res, 'Failed to edit message');
     }
   };
 
@@ -463,7 +456,7 @@ export class MessageController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -473,12 +466,12 @@ export class MessageController {
       });
 
       if (!message) {
-        notFound(res, 'Message not found');
+        ResponseHelper.notFound(res, 'Message not found');
         return;
       }
 
       if (message.senderId !== userId) {
-        unauthorized(res, 'You can only delete your own messages');
+        ResponseHelper.unauthorized(res, 'You can only delete your own messages');
         return;
       }
 
@@ -522,10 +515,10 @@ export class MessageController {
       }
 
       logger.info(`Message deleted: ${messageId} by user: ${userId}`);
-      success(res, null, 'Message deleted successfully');
+      ResponseHelper.success(res, null, 'Message deleted successfully');
     } catch (error) {
       logger.error('Error deleting message:', error);
-      internalError(res, 'Failed to delete message');
+      ResponseHelper.internalError(res, 'Failed to delete message');
     }
   };
 
@@ -539,12 +532,12 @@ export class MessageController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
       if (!emoji || emoji.trim().length === 0) {
-        badRequest(res, 'Emoji is required');
+        ResponseHelper.badRequest(res, 'Emoji is required');
         return;
       }
 
@@ -565,7 +558,7 @@ export class MessageController {
       });
 
       if (!message) {
-        notFound(res, 'Message not found or you do not have access');
+        ResponseHelper.notFound(res, 'Message not found or you do not have access');
         return;
       }
 
@@ -622,10 +615,10 @@ export class MessageController {
       logger.info(
         `Message reaction ${action}: ${messageId} by user: ${userId} with emoji: ${emoji}`,
       );
-      success(res, reactionData, `Reaction ${action} successfully`);
+      ResponseHelper.success(res, reactionData, `Reaction ${action} successfully`);
     } catch (error) {
       logger.error('Error reacting to message:', error);
-      internalError(res, 'Failed to react to message');
+      ResponseHelper.internalError(res, 'Failed to react to message');
     }
   };
 
@@ -639,7 +632,7 @@ export class MessageController {
       const userId = req.user?.userId;
 
       if (!userId) {
-        unauthorized(res, 'Authentication required');
+        ResponseHelper.unauthorized(res, 'Authentication required');
         return;
       }
 
@@ -653,7 +646,7 @@ export class MessageController {
       });
 
       if (!participant) {
-        unauthorized(res, 'You are not a participant in this conversation');
+        ResponseHelper.unauthorized(res, 'You are not a participant in this conversation');
         return;
       }
 
@@ -669,7 +662,7 @@ export class MessageController {
         });
 
         if (!targetMessage) {
-          badRequest(res, 'Target message not found');
+          ResponseHelper.badRequest(res, 'Target message not found');
           return;
         }
       } else {
@@ -737,10 +730,10 @@ export class MessageController {
       }
 
       logger.info(`Messages marked as read in conversation: ${conversationId} by user: ${userId}`);
-      success(res, null, 'Messages marked as read');
+      ResponseHelper.success(res, null, 'Messages marked as read');
     } catch (error) {
       logger.error('Error marking messages as read:', error);
-      internalError(res, 'Failed to mark messages as read');
+      ResponseHelper.internalError(res, 'Failed to mark messages as read');
     }
   };
 }

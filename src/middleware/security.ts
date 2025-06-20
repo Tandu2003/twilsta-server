@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import { badRequest, tooManyRequests } from '../utils/responseHelper';
+import { ResponseHelper } from '../utils/responseHelper';
 
 /**
  * Security headers middleware
@@ -39,7 +39,7 @@ export const createRateLimit = (
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req: Request, res: Response) => {
-      tooManyRequests(res, message);
+      ResponseHelper.tooManyRequests(res, message);
     },
   });
 };
@@ -75,7 +75,7 @@ export const requestSizeLimiter = (req: Request, res: Response, next: NextFuncti
   const maxSize = 10 * 1024 * 1024; // 10MB
 
   if (contentLength > maxSize) {
-    badRequest(res, 'Request payload too large. Maximum size is 10MB');
+    ResponseHelper.badRequest(res, 'Request payload too large. Maximum size is 10MB');
     return;
   }
 
