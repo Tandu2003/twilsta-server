@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { UserController } from '../controllers/userController';
 import { PostController } from '../controllers/postController';
 import { CommentController } from '../controllers/commentController';
-import { handleValidationErrors } from '../middleware/errorHandler';
 import {
   userValidations,
   postValidations,
   commentValidations,
   crudValidations,
+  validateRequest,
 } from '../middleware/validations';
-import { apiLimiter, authLimiter } from '../middleware/security';
+// Rate limiting removed as requested
 import {
   uploadAvatar,
   uploadCoverImage,
@@ -24,11 +24,9 @@ import conversationRoutes from './conversationRoutes';
 
 const router = Router();
 
-// Apply API rate limiting to all routes
-router.use(apiLimiter);
-
-// Auth routes with stricter rate limiting
-router.use('/auth', authLimiter, authRoutes);
+// Rate limiting removed - no restrictions
+// Auth routes without rate limiting
+router.use('/auth', authRoutes);
 
 // Message and Conversation routes
 router.use('/messages', messageRoutes);
@@ -36,24 +34,24 @@ router.use('/conversations', conversationRoutes);
 
 // User routes
 // Public routes
-router.get('/users', crudValidations.pagination, handleValidationErrors, UserController.getAll);
-router.get('/users/:id', crudValidations.getById, handleValidationErrors, UserController.getById);
+router.get('/users', crudValidations.pagination, validateRequest, UserController.getAll);
+router.get('/users/:id', crudValidations.getById, validateRequest, UserController.getById);
 router.get(
   '/users/username/:username',
   userValidations.getByUsername,
-  handleValidationErrors,
+  validateRequest,
   UserController.getByUsername,
 );
 router.get(
   '/users/:id/followers',
   crudValidations.getById.concat(crudValidations.pagination),
-  handleValidationErrors,
+  validateRequest,
   UserController.getFollowers,
 );
 router.get(
   '/users/:id/following',
   crudValidations.getById.concat(crudValidations.pagination),
-  handleValidationErrors,
+  validateRequest,
   UserController.getFollowing,
 );
 
@@ -61,75 +59,69 @@ router.get(
 router.post(
   '/users/:id/follow',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   UserController.followUser,
 );
 router.delete(
   '/users/:id/follow',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   UserController.unfollowUser,
 );
 
-// Auth routes with stricter rate limiting
-router.post(
-  '/auth/register',
-  authLimiter,
-  userValidations.register,
-  handleValidationErrors,
-  UserController.register,
-);
+// Auth routes without rate limiting
+router.post('/auth/register', userValidations.register, validateRequest, UserController.register);
 
 // Protected routes (require authentication - to be implemented)
 router.put(
   '/users/:id/profile',
   crudValidations.getById.concat(userValidations.updateProfile),
-  handleValidationErrors,
+  validateRequest,
   UserController.updateProfile,
 );
 
-// Avatar upload route
+// Avatar upload route - FIXED ORDER
 router.post(
   '/users/:id/avatar',
   crudValidations.getById,
+  validateRequest,
   uploadAvatar,
-  validateUploadedFiles,
-  handleValidationErrors,
-  UserController.uploadAvatar,
   handleUploadError,
+  validateUploadedFiles,
+  UserController.uploadAvatar,
 );
 
 // Remove avatar route
 router.delete(
   '/users/:id/avatar',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   UserController.removeAvatar,
 );
 
-// Cover image upload route
+// Cover image upload route - FIXED ORDER
 router.post(
   '/users/:id/cover',
   crudValidations.getById,
+  validateRequest,
   uploadCoverImage,
-  validateUploadedFiles,
-  handleValidationErrors,
-  UserController.uploadCoverImage,
   handleUploadError,
+  validateUploadedFiles,
+  UserController.uploadCoverImage,
 );
 
 // Remove cover image route
 router.delete(
   '/users/:id/cover',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   UserController.removeCoverImage,
 );
 
 router.put(
   '/users/:id/password',
   crudValidations.getById.concat(userValidations.changePassword),
-  handleValidationErrors,
+  validateRequest,
   UserController.changePassword,
 );
 
@@ -137,59 +129,44 @@ router.put(
 router.post(
   '/users/:id/deactivate',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   UserController.deactivateAccount,
 );
 
-router.delete(
-  '/users/:id',
-  crudValidations.deleteById,
-  handleValidationErrors,
-  UserController.delete,
-);
+router.delete('/users/:id', crudValidations.deleteById, validateRequest, UserController.delete);
 
 // Post routes
 // Public routes
-router.get('/posts', postValidations.getAll, handleValidationErrors, PostController.getAll);
-router.get('/posts/:id', crudValidations.getById, handleValidationErrors, PostController.getById);
+router.get('/posts', postValidations.getAll, validateRequest, PostController.getAll);
+router.get('/posts/:id', crudValidations.getById, validateRequest, PostController.getById);
 router.get(
   '/posts/:id/replies',
   crudValidations.getById.concat(crudValidations.pagination),
-  handleValidationErrors,
+  validateRequest,
   PostController.getReplies,
 );
 
 // Protected routes (require authentication - to be implemented)
-router.post('/posts', postValidations.create, handleValidationErrors, PostController.create);
-router.put('/posts/:id', postValidations.update, handleValidationErrors, PostController.update);
-router.delete(
-  '/posts/:id',
-  crudValidations.deleteById,
-  handleValidationErrors,
-  PostController.delete,
-);
-router.post(
-  '/posts/:id/like',
-  crudValidations.getById,
-  handleValidationErrors,
-  PostController.toggleLike,
-);
+router.post('/posts', postValidations.create, validateRequest, PostController.create);
+router.put('/posts/:id', postValidations.update, validateRequest, PostController.update);
+router.delete('/posts/:id', crudValidations.deleteById, validateRequest, PostController.delete);
+router.post('/posts/:id/like', crudValidations.getById, validateRequest, PostController.toggleLike);
 
-// Post media management routes
+// Post media management routes - FIXED ORDER
 router.post(
   '/posts/:id/media',
   crudValidations.getById,
+  validateRequest,
   uploadPostMedia,
-  validateUploadedFiles,
-  handleValidationErrors,
-  PostController.addMedia,
   handleUploadError,
+  validateUploadedFiles,
+  PostController.addMedia,
 );
 
 router.delete(
   '/posts/:id/media',
   crudValidations.getById.concat(postValidations.removeMedia),
-  handleValidationErrors,
+  validateRequest,
   PostController.removeMedia,
 );
 
@@ -198,71 +175,62 @@ router.delete(
 router.get(
   '/posts/:postId/comments',
   commentValidations.getByPost,
-  handleValidationErrors,
+  validateRequest,
   CommentController.getCommentsByPost,
 );
 
 router.get(
   '/comments/:commentId/replies',
   commentValidations.getReplies,
-  handleValidationErrors,
+  validateRequest,
   CommentController.getReplies,
 );
 
 // Protected routes (require authentication - to be implemented)
-router.post(
-  '/comments',
-  commentValidations.create,
-  handleValidationErrors,
-  CommentController.create,
-);
+router.post('/comments', commentValidations.create, validateRequest, CommentController.create);
 
+// Comment media upload route - FIXED ORDER
 router.post(
   '/comments/media',
-  uploadCommentMedia,
-  validateUploadedFiles,
   commentValidations.create,
-  handleValidationErrors,
-  CommentController.create,
+  validateRequest,
+  uploadCommentMedia,
   handleUploadError,
+  validateUploadedFiles,
+  CommentController.create,
 );
 
-router.put(
-  '/comments/:id',
-  commentValidations.update,
-  handleValidationErrors,
-  CommentController.update,
-);
+router.put('/comments/:id', commentValidations.update, validateRequest, CommentController.update);
 
 router.delete(
   '/comments/:id',
   crudValidations.deleteById,
-  handleValidationErrors,
+  validateRequest,
   CommentController.delete,
 );
 
 router.post(
   '/comments/:id/like',
   crudValidations.getById,
-  handleValidationErrors,
+  validateRequest,
   CommentController.toggleLike,
 );
 
-// Comment media management routes
+// Comment media management routes - FIXED ORDER
 router.post(
   '/comments/:id/media',
   crudValidations.getById,
+  validateRequest,
   uploadCommentMedia,
-  validateUploadedFiles,
-  handleValidationErrors,
-  CommentController.addMedia,
   handleUploadError,
+  validateUploadedFiles,
+  CommentController.addMedia,
 );
 
 router.delete(
   '/comments/:id/media',
   commentValidations.removeMedia,
-  handleValidationErrors,
+  validateRequest,
   CommentController.removeMedia,
 );
 

@@ -173,6 +173,13 @@ export class ResponseHelper {
   }
 
   /**
+   * Conflict response (409)
+   */
+  static conflict(res: Response, message: string = 'Conflict', error?: any): Response<ApiResponse> {
+    return this.error(res, message, 409, error);
+  }
+
+  /**
    * Too Many Requests response
    */
   static tooManyRequests(
@@ -197,5 +204,6 @@ export const {
   notFound,
   validationError,
   internalError,
+  conflict,
   tooManyRequests,
 } = ResponseHelper;

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwtService, { JWTPayload } from '../services/jwtService';
-import { unauthorized, forbidden, internalError } from '../utils/responseHelper';
+import { forbidden, internalError, unauthorized } from '../utils/responseHelper';
 import logger from '../utils/logger';
 
 // Extend Request interface to include user
@@ -22,15 +22,9 @@ export const authenticateToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    let accessToken: string | undefined;
-
-    // Primary: Get token from Authorization header (preferred method)
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      accessToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-    }
 
-    if (!accessToken) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       unauthorized(
         res,
         'Access token required. Please provide a valid Bearer token in Authorization header.',
@@ -38,6 +32,7 @@ export const authenticateToken = async (
       return;
     }
 
+    const accessToken = authHeader.substring(7);
     const payload = jwtService.verifyAccessToken(accessToken);
 
     if (!payload) {
@@ -45,16 +40,15 @@ export const authenticateToken = async (
       return;
     }
 
-    // Attach user info to request
     req.user = payload;
-
     logger.debug(`Authenticated user: ${payload.userId}`);
     next();
   } catch (error) {
     logger.error('Token authentication failed:', error);
     if (!res.headersSent) {
-      unauthorized(res, 'Authentication failed');
+      internalError(res, 'Authentication failed');
     }
+    return;
   }
 };
 
@@ -134,5 +128,6 @@ export const validateRefreshToken = async (
   } catch (error) {
     logger.error('Refresh token validation failed:', error);
     internalError(res, 'Token validation failed');
+    return; // Important: return here to stop execution
   }
 };

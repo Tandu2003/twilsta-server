@@ -4,12 +4,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaClient } from '@prisma/client';
 import {
   success,
-  created,
-  badRequest,
   unauthorized,
-  notFound,
+  forbidden,
   internalError,
-  validationError,
+  badRequest,
+  notFound,
+  conflict,
+  created,
 } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import jwtService from '../services/jwtService';
@@ -58,30 +59,16 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (existingUser) {
       if (existingUser.email === email) {
-        res.status(409).json({
-          success: false,
-          message: 'Email already registered',
-          error: {
-            field: 'email',
-            value: email,
-          },
-          meta: {
-            timestamp: new Date().toISOString(),
-          },
+        conflict(res, 'Email already registered', {
+          field: 'email',
+          value: email,
         });
         return;
       }
       if (existingUser.username === username) {
-        res.status(409).json({
-          success: false,
-          message: 'Username already taken',
-          error: {
-            field: 'username',
-            value: username,
-          },
-          meta: {
-            timestamp: new Date().toISOString(),
-          },
+        conflict(res, 'Username already taken', {
+          field: 'username',
+          value: username,
         });
         return;
       }
@@ -128,11 +115,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     logger.debug('About to send created response...');
 
     try {
-      res.status(201).json({
-        success: true,
-        message: 'Registration successful. Please check your email for verification instructions.',
-        data: { user },
-      });
+      created(
+        res,
+        { user },
+        'Registration successful. Please check your email for verification instructions.',
+      );
       logger.debug('Created response sent successfully');
     } catch (responseError) {
       logger.error('Error sending response:', responseError);
@@ -149,45 +136,24 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     if (error.code === 'P2002') {
       // Unique constraint violation
       const field = error.meta?.target?.[0] || 'field';
-      res.status(409).json({
-        success: false,
-        message: `${field === 'email' ? 'Email' : 'Username'} already exists`,
-        error: {
-          field: field,
-          code: 'DUPLICATE_ENTRY',
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-        },
+      conflict(res, `${field === 'email' ? 'Email' : 'Username'} already exists`, {
+        field: field,
+        code: 'DUPLICATE_ENTRY',
       });
       return;
     }
 
     // Handle other database errors
     if (error.code?.startsWith('P')) {
-      res.status(500).json({
-        success: false,
-        message: 'Database error occurred',
-        error: {
-          code: error.code,
-        },
-        meta: {
-          timestamp: new Date().toISOString(),
-        },
+      internalError(res, 'Database error occurred', {
+        code: error.code,
       });
       return;
     }
 
     // Generic error
-    res.status(500).json({
-      success: false,
-      message: 'Registration failed',
-      error: {
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-      },
-      meta: {
-        timestamp: new Date().toISOString(),
-      },
+    internalError(res, 'Registration failed', {
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
     });
   }
 };
@@ -220,6 +186,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Check if email is verified - REQUIRED for login
+    if (!user.verified) {
+      forbidden(res, 'Email verification required. Please verify your email before logging in.');
+      return;
+    }
+
     // Generate tokens (jwtService automatically stores refresh token in database)
     const { accessToken, refreshToken } = await jwtService.generateTokenPair(
       user,
@@ -244,7 +216,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           avatar: user.avatar,
         },
         accessToken, // Return access token in response body
-        requiresVerification: !user.verified,
       },
       'Login successful',
     );

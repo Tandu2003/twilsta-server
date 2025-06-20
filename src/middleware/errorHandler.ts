@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import logger from '../utils/logger';
-import { ResponseHelper } from '../utils/responseHelper';
+import {
+  error as ErrorResponse,
+  validationError,
+  internalError,
+  notFound,
+  badRequest,
+} from '../utils/responseHelper';
 import { AppError, ValidationError } from '../utils/errors';
 
 /**
@@ -80,33 +86,30 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
     // Handle validation errors specifically
     if (error instanceof ValidationError) {
-      ResponseHelper.validationError(res, error.errors, error.message);
+      validationError(res, error.errors, error.message);
       return;
     }
 
     // Handle operational errors
     if (error instanceof AppError) {
-      ResponseHelper.error(res, error.message, error.statusCode);
+      ErrorResponse(res, error.message, error.statusCode);
       return;
     }
 
     // Default to 500 server error
     if (!res.headersSent) {
-      res.status(error.statusCode || 500).json({
-        success: false,
-        message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : error.message,
-        error:
-          process.env.NODE_ENV === 'development'
-            ? {
-                name: error.name,
-                code: error.code,
-                stack: error.stack,
-              }
-            : undefined,
-        meta: {
-          timestamp: new Date().toISOString(),
-        },
-      });
+      error(
+        res,
+        process.env.NODE_ENV === 'production' ? 'Something went wrong!' : error.message,
+        error.statusCode || 500,
+        process.env.NODE_ENV === 'development'
+          ? {
+              name: error.name,
+              code: error.code,
+              stack: error.stack,
+            }
+          : undefined,
+      );
     }
   } catch (handlerError) {
     // If error handler itself fails, log it and send a basic response
@@ -115,13 +118,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     // Try to send a basic error response if possible
     try {
       if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: 'Critical server error',
-          meta: {
-            timestamp: new Date().toISOString(),
-          },
-        });
+        internalError(res, 'Critical server error');
       }
     } catch (responseError) {
       logger.error('❌ Failed to send error response:', responseError);
@@ -141,17 +138,13 @@ export const notFoundHandler = (req: Request, res: Response, next: NextFunction)
     });
 
     if (!res.headersSent) {
-      ResponseHelper.notFound(res, `Route ${req.originalUrl} not found`);
+      notFound(res, `Route ${req.originalUrl} not found`);
     }
   } catch (error) {
     logger.error('Error in 404 handler:', error);
     try {
       if (!res.headersSent) {
-        res.status(404).json({
-          success: false,
-          message: 'Not found',
-          timestamp: new Date().toISOString(),
-        });
+        notFound(res, 'Not found');
       }
     } catch (responseError) {
       logger.error('Failed to send 404 response:', responseError);
@@ -176,7 +169,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
       logger.info('Validation errors:', { errors: errorMessages, url: req.url });
 
       if (!res.headersSent) {
-        ResponseHelper.validationError(res, errorMessages);
+        validationError(res, errorMessages);
       }
       return;
     }
@@ -186,11 +179,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
     logger.error('Error in validation handler:', error);
     try {
       if (!res.headersSent) {
-        res.status(400).json({
-          success: false,
-          message: 'Validation error',
-          timestamp: new Date().toISOString(),
-        });
+        badRequest(res, 'Validation error');
       }
     } catch (responseError) {
       logger.error('Failed to send validation error response:', responseError);

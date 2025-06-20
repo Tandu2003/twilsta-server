@@ -8,6 +8,7 @@ import {
   unauthorized,
   notFound,
   internalError,
+  paginated,
 } from '../utils/responseHelper';
 import logger from '../utils/logger';
 import cloudinaryService from '../services/cloudinaryService';
@@ -67,18 +68,7 @@ export class UserController {
         }),
         prisma.user.count({ where }),
       ]);
-      res.status(200).json({
-        success: true,
-        message: 'Users retrieved successfully',
-        data: users,
-        meta: {
-          timestamp: new Date().toISOString(),
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      });
+      paginated(res, users, page, limit, total, 'Users retrieved successfully');
     } catch (error) {
       logger.error('Error getting users:', error);
       internalError(res, 'Failed to retrieve users');
@@ -521,18 +511,7 @@ export class UserController {
       ]);
 
       const followersList = followers.map((f) => f.follower);
-      res.status(200).json({
-        success: true,
-        message: 'Followers retrieved successfully',
-        data: followersList,
-        meta: {
-          timestamp: new Date().toISOString(),
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      });
+      paginated(res, followersList, page, limit, total, 'Followers retrieved successfully');
     } catch (error) {
       logger.error('Error getting followers:', error);
       internalError(res, 'Failed to retrieve followers');
@@ -572,18 +551,7 @@ export class UserController {
       ]);
 
       const followingList = following.map((f) => f.following);
-      res.status(200).json({
-        success: true,
-        message: 'Following retrieved successfully',
-        data: followingList,
-        meta: {
-          timestamp: new Date().toISOString(),
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-      });
+      paginated(res, followingList, page, limit, total, 'Following retrieved successfully');
     } catch (error) {
       logger.error('Error getting following:', error);
       internalError(res, 'Failed to retrieve following');

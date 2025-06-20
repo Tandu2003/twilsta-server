@@ -5,10 +5,10 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import apiRoutes from './routes';
 import logger from './utils/logger';
-import { ResponseHelper } from './utils/responseHelper';
+import { internalError, error as errorResponse, success } from './utils/responseHelper';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger, customRequestLogger } from './middleware/logging';
-import { securityHeaders, generalLimiter, requestSizeLimiter } from './middleware/security';
+import { securityHeaders, requestSizeLimiter } from './middleware/security';
 import { PrismaClient } from '@prisma/client';
 
 // Load environment variables
@@ -27,8 +27,7 @@ app.use(securityHeaders);
 app.use(requestLogger);
 app.use(customRequestLogger);
 
-// Rate limiting
-app.use(generalLimiter);
+// Rate limiting removed as requested
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -91,10 +90,10 @@ app.get('/health', async (req: Request, res: Response) => {
       healthData.status = 'DEGRADED';
     }
 
-    ResponseHelper.success(res, healthData, 'Server health check completed');
+    success(res, healthData, 'Server health check completed');
   } catch (error) {
     logger.error('Health check error:', error);
-    ResponseHelper.error(res, 'Health check failed', 503);
+    errorResponse(res, 'Health check failed', 503);
   }
 });
 
@@ -111,9 +110,8 @@ app.get('/status', (req: Request, res: Response) => {
     res.json(status);
   } catch (error) {
     logger.error('Status check error:', error);
-    res.status(500).json({
+    internalError(res, 'Status check failed', {
       server: 'error',
-      timestamp: new Date().toISOString(),
       error: process.env.NODE_ENV === 'production' ? 'Status check failed' : String(error),
     });
   }

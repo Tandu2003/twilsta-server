@@ -233,7 +233,10 @@ export const handleUploadError = (
     return;
   }
 
-  next(error);
+  // If it's an unknown error, return generic upload error instead of calling next()
+  logger.error('Unknown upload error:', error);
+  badRequest(res, 'File upload failed');
+  return;
 };
 
 /**
