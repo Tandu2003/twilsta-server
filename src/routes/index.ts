@@ -170,6 +170,14 @@ router.post(
   validateRequest,
   PostController.create,
 );
+router.post(
+  '/posts/media',
+  authenticateToken,
+  uploadPostMedia,
+  handleUploadError,
+  validateUploadedFiles,
+  PostController.create,
+);
 router.put(
   '/posts/:id',
   authenticateToken,
@@ -190,6 +198,13 @@ router.post(
   crudValidations.getById,
   validateRequest,
   PostController.toggleLike,
+);
+router.get(
+  '/posts/:id/like-status',
+  authenticateToken,
+  crudValidations.getById,
+  validateRequest,
+  PostController.getLikeStatus,
 );
 
 // Post media management routes - FIXED ORDER

@@ -335,7 +335,11 @@ export class PostController {
       }); // Broadcast new post creation via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastNewPost(newPost);
+        try {
+          realtimeService.broadcastNewPost(newPost);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast new post event:', broadcastError);
+        }
       }
 
       logger.info(`New post created: ${newPost.id} by user: ${userId}`);
@@ -409,7 +413,11 @@ export class PostController {
       // Broadcast post update via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastPostUpdate(id, updatedPost);
+        try {
+          realtimeService.broadcastPostUpdate(id, updatedPost);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast post update event:', broadcastError);
+        }
       }
 
       logger.info(`Post updated: ${id} by user: ${userId}`);
@@ -504,7 +512,11 @@ export class PostController {
       // Broadcast post deletion via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastPostDelete(id, userId);
+        try {
+          realtimeService.broadcastPostDelete(id, userId);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast post delete event:', broadcastError);
+        }
       }
 
       logger.info(`Post deleted: ${id} by user: ${userId}`);
@@ -523,6 +535,8 @@ export class PostController {
       const { id } = req.params;
       const userId = req.user?.userId;
 
+      logger.info(`Toggle like request - Post ID: ${id}, User ID: ${userId}`);
+
       if (!userId) {
         ResponseHelper.unauthorized(res, 'Authentication required');
         return;
@@ -534,8 +548,17 @@ export class PostController {
         select: { id: true, authorId: true },
       });
 
+      logger.info(`Post lookup result:`, { post, postId: id });
+
       if (!post) {
+        logger.warn(`Post not found: ${id}`);
         ResponseHelper.notFound(res, 'Post not found');
+        return;
+      }
+
+      if (!post.authorId) {
+        logger.error(`Post found but authorId is null: ${id}`);
+        ResponseHelper.badRequest(res, 'Invalid post data');
         return;
       }
 
@@ -548,6 +571,9 @@ export class PostController {
           },
         },
       });
+
+      logger.info(`Existing like check:`, { existingLike, userId, postId: id });
+
       let liked = false;
       let message = '';
       let likeData = null;
@@ -565,10 +591,24 @@ export class PostController {
         message = 'Post unliked successfully';
         liked = false;
 
+        // Update post likes count
+        await prisma.post.update({
+          where: { id },
+          data: {
+            likesCount: {
+              decrement: 1,
+            },
+          },
+        });
+
         // Broadcast unlike event
         const realtimeService = getRealtimeService();
-        if (realtimeService) {
-          realtimeService.broadcastPostUnlike(id, userId, post.authorId);
+        if (realtimeService && post.authorId) {
+          try {
+            realtimeService.broadcastPostUnlike(id, userId, post.authorId);
+          } catch (broadcastError) {
+            logger.warn('Failed to broadcast unlike event:', broadcastError);
+          }
         }
       } else {
         // Like the post
@@ -593,19 +633,38 @@ export class PostController {
         liked = true;
         likeData = newLike;
 
+        // Update post likes count
+        await prisma.post.update({
+          where: { id },
+          data: {
+            likesCount: {
+              increment: 1,
+            },
+          },
+        });
+
         // Broadcast like event
         const realtimeService = getRealtimeService();
         if (realtimeService) {
-          realtimeService.broadcastPostLike(id, newLike);
+          try {
+            realtimeService.broadcastPostLike(id, newLike);
+          } catch (broadcastError) {
+            logger.warn('Failed to broadcast like event:', broadcastError);
+          }
         }
       }
 
-      // Get updated like count
-      const likeCount = await prisma.like.count({
-        where: { postId: id },
+      // Get updated like count from post
+      const updatedPost = await prisma.post.findUnique({
+        where: { id },
+        select: { likesCount: true },
       });
 
-      logger.info(`Post ${liked ? 'liked' : 'unliked'}: ${id} by user: ${userId}`);
+      const likeCount = updatedPost?.likesCount || 0;
+
+      logger.info(
+        `Post ${liked ? 'liked' : 'unliked'}: ${id} by user: ${userId}, new count: ${likeCount}`,
+      );
       ResponseHelper.success(
         res,
         {
@@ -930,6 +989,55 @@ export class PostController {
     } catch (error) {
       logger.error('Error removing media from post:', error);
       ResponseHelper.internalError(res, 'Failed to remove media from post');
+    }
+  };
+
+  /**
+   * Get like status for a post
+   */
+  static getLikeStatus = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+
+      logger.info(`Get like status request - Post ID: ${id}, User ID: ${userId}`);
+
+      if (!userId) {
+        ResponseHelper.unauthorized(res, 'Authentication required');
+        return;
+      }
+
+      // Check if post exists
+      const post = await prisma.post.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      logger.info(`Post lookup for like status:`, { post, postId: id });
+
+      if (!post) {
+        logger.warn(`Post not found for like status: ${id}`);
+        ResponseHelper.notFound(res, 'Post not found');
+        return;
+      }
+
+      // Check if user liked the post
+      const existingLike = await prisma.like.findUnique({
+        where: {
+          userId_postId: {
+            userId,
+            postId: id,
+          },
+        },
+      });
+
+      const liked = !!existingLike;
+
+      logger.info(`Like status result:`, { postId: id, userId, liked });
+      ResponseHelper.success(res, { liked }, 'Like status retrieved successfully');
+    } catch (error) {
+      logger.error('Error getting like status:', error);
+      ResponseHelper.internalError(res, 'Failed to get like status');
     }
   };
 }

@@ -348,6 +348,16 @@ export class CommentController {
         });
       }
 
+      // Update post's comments count
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          commentsCount: {
+            increment: 1,
+          },
+        },
+      });
+
       // Send email notifications
       try {
         // Notify post author if someone commented on their post
@@ -377,7 +387,11 @@ export class CommentController {
       // Broadcast new comment via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastNewComment(newComment);
+        try {
+          realtimeService.broadcastNewComment(newComment);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast new comment event:', broadcastError);
+        }
       }
 
       logger.info(`New comment created: ${newComment.id} by user: ${userId}`);
@@ -438,10 +452,16 @@ export class CommentController {
             },
           },
         },
-      }); // Broadcast comment update via Socket.IO
+      });
+
+      // Broadcast comment update via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastCommentUpdate(updatedComment);
+        try {
+          realtimeService.broadcastCommentUpdate(updatedComment);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast comment update event:', broadcastError);
+        }
       }
 
       logger.info(`Comment updated: ${id} by user: ${userId}`);
@@ -504,7 +524,19 @@ export class CommentController {
             },
           },
         });
-      } // Cleanup media files from Cloudinary
+      }
+
+      // Update post's comments count
+      await prisma.post.update({
+        where: { id: comment.postId },
+        data: {
+          commentsCount: {
+            decrement: 1,
+          },
+        },
+      });
+
+      // Cleanup media files from Cloudinary
       if (mediaUrls.length > 0) {
         try {
           for (const mediaUrl of mediaUrls) {
@@ -522,7 +554,11 @@ export class CommentController {
       // Broadcast comment deletion via Socket.IO
       const realtimeService = getRealtimeService();
       if (realtimeService) {
-        realtimeService.broadcastCommentDelete(id, comment.postId, userId);
+        try {
+          realtimeService.broadcastCommentDelete(id, comment.postId, userId);
+        } catch (broadcastError) {
+          logger.warn('Failed to broadcast comment delete event:', broadcastError);
+        }
       }
 
       logger.info(`Comment deleted: ${id} by user: ${userId}`);
@@ -587,7 +623,11 @@ export class CommentController {
         // Broadcast unlike event
         const realtimeService = getRealtimeService();
         if (realtimeService) {
-          realtimeService.broadcastCommentUnlike(id, userId, comment.userId);
+          try {
+            realtimeService.broadcastCommentUnlike(id, userId, comment.userId);
+          } catch (broadcastError) {
+            logger.warn('Failed to broadcast comment unlike event:', broadcastError);
+          }
         }
 
         logger.info(`Comment unliked: ${id} by user: ${userId}`);
@@ -626,7 +666,11 @@ export class CommentController {
         // Broadcast like event
         const realtimeService = getRealtimeService();
         if (realtimeService) {
-          realtimeService.broadcastCommentLike(id, newLike);
+          try {
+            realtimeService.broadcastCommentLike(id, newLike);
+          } catch (broadcastError) {
+            logger.warn('Failed to broadcast comment like event:', broadcastError);
+          }
         }
 
         logger.info(`Comment liked: ${id} by user: ${userId}`);
