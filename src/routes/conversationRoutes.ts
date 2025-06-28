@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { ConversationController } from '../controllers/conversationController';
 import { authenticateToken } from '../middleware/auth';
-import { handleValidationErrors } from '../middleware/errorHandler';
-import { conversationValidations } from '../middleware/validations';
+import { conversationValidations, validateRequest } from '../middleware/validations';
 import {
   uploadConversationAvatar,
   validateUploadedFiles,
@@ -22,7 +21,7 @@ router.use(authenticateToken);
 router.get(
   '/',
   conversationValidations.getConversations,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.getConversations,
 );
 
@@ -34,7 +33,7 @@ router.get(
 router.get(
   '/:conversationId',
   conversationValidations.getConversation,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.getConversation,
 );
 
@@ -48,7 +47,7 @@ router.post(
   uploadConversationAvatar,
   validateUploadedFiles,
   conversationValidations.createConversation,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.createConversation,
   handleUploadError,
 );
@@ -63,7 +62,7 @@ router.put(
   uploadConversationAvatar,
   validateUploadedFiles,
   conversationValidations.updateConversation,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.updateConversation,
   handleUploadError,
 );
@@ -76,7 +75,7 @@ router.put(
 router.delete(
   '/:conversationId',
   conversationValidations.deleteConversation,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.deleteConversation,
 );
 
@@ -88,7 +87,7 @@ router.delete(
 router.post(
   '/:conversationId/participants',
   conversationValidations.addParticipants,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.addParticipants,
 );
 
@@ -100,7 +99,7 @@ router.post(
 router.delete(
   '/:conversationId/participants/:participantId',
   conversationValidations.removeParticipant,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.removeParticipant,
 );
 
@@ -112,7 +111,7 @@ router.delete(
 router.post(
   '/:conversationId/leave',
   conversationValidations.leaveConversation,
-  handleValidationErrors,
+  validateRequest,
   ConversationController.leaveConversation,
 );
 

@@ -6,6 +6,9 @@ import { uploadMessageFile } from '../middleware/upload';
 
 const router = Router();
 
+// All message routes require authentication
+router.use(authenticateToken);
+
 /**
  * @route GET /api/messages/:conversationId
  * @desc Get messages in a conversation
@@ -13,7 +16,6 @@ const router = Router();
  */
 router.get(
   '/:conversationId',
-  authenticateToken,
   messageValidations.getMessages,
   validateRequest,
   MessageController.getMessages,
@@ -26,7 +28,6 @@ router.get(
  */
 router.post(
   '/:conversationId',
-  authenticateToken,
   uploadMessageFile,
   messageValidations.sendMessage,
   validateRequest,
@@ -40,7 +41,6 @@ router.post(
  */
 router.put(
   '/:messageId',
-  authenticateToken,
   messageValidations.editMessage,
   validateRequest,
   MessageController.editMessage,
@@ -53,7 +53,6 @@ router.put(
  */
 router.delete(
   '/:messageId',
-  authenticateToken,
   messageValidations.deleteMessage,
   validateRequest,
   MessageController.deleteMessage,
@@ -66,7 +65,6 @@ router.delete(
  */
 router.post(
   '/:messageId/react',
-  authenticateToken,
   messageValidations.reactToMessage,
   validateRequest,
   MessageController.reactToMessage,
@@ -79,7 +77,6 @@ router.post(
  */
 router.post(
   '/:conversationId/read',
-  authenticateToken,
   messageValidations.markAsRead,
   validateRequest,
   MessageController.markAsRead,
